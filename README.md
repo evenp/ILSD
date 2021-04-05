@@ -4,6 +4,9 @@ Supervised extraction of linear structures
 (ridge or hollow structures, carriage tracks)
 from LiDAR raw data, and visualization of cross and longitudinal profiles.
 
+![Figure](Images/ccx02.png?raw=true)
+**Extraction of a holloway structure : on left, a profile of 3D points ; at center, analyzed scans ; on right, the extracted structure displayed over the DTM view (in green, the user input ; in black, current analyzed profile position ; in blue, selected area for the holloway volume estimation).**
+
 Ensured functionalities are surely far from complete,
 but we hope that this first set will already help LiDAR analysis tasks.
 Suggestions are welcome.
@@ -16,6 +19,7 @@ Ngo, P., 2021. Fast extraction of linear structures fromLiDAR raw data
 for archaeomorphological structure prospection.
 In International Archives of the Photogrammetry, Remote Sensing and Spatial
 Information Sciences (proc. of the 2021 edition of the XXIVth ISPRS Congress).
+<a href="https://hal.archives-ouvertes.fr/hal-03189641">hal-03189641</a>
 
 ## QUICK SETUP / COMPILATION GUIDE
 ### windows
