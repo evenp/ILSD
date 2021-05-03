@@ -48,7 +48,7 @@ const float CTrackDetector::LN_UNSTAB = 0.25f;
 const int CTrackDetector::NB_UNSTAB = 2;
 const float CTrackDetector::POS_INCR = 0.05f;
 
-const int CTrackDetector::NB_SIDE_TRIALS = 13;
+const int CTrackDetector::NB_SIDE_TRIALS = 11; // 13;
 
 
 CTrackDetector::CTrackDetector ()
@@ -436,10 +436,10 @@ void CTrackDetector::detect ()
 
   float *tests = new float[NB_SIDE_TRIALS];
   tests[0] = 0.0f;
-  for (int i = 0; i < NB_SIDE_TRIALS / 2; i ++)
+  for (int i = 1; i <= NB_SIDE_TRIALS / 2; i ++)
   {
-    tests[2 * i + 1] = (float) (i);
-    if (2 * i < NB_SIDE_TRIALS) tests[2 * i] = - (float) (i);
+    tests[2 * i - 1] = (float) i;
+    if (2 * i < NB_SIDE_TRIALS) tests[2 * i] = - (float) i;
   }
   bool found = false;
   Plateau *cpl = NULL;
