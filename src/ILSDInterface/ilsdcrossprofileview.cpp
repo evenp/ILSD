@@ -292,7 +292,8 @@ void ILSDCrossProfileView::keyPressed (int key, int scancode,
                                             1 : -1);
           item->rebuildScans ();
           update ();
-          detection_widget->paintEvent (getContext ());
+//          detection_widget->paintEvent (getContext ());
+          detection_widget->updateWidget ();
         }
       }
       break;
@@ -337,7 +338,8 @@ void ILSDCrossProfileView::keyPressed (int key, int scancode,
         item_ctrl->incScan (1);
         item->updateProfile ();
         update ();
-        detection_widget->paintEvent (getContext ());
+//        detection_widget->paintEvent (getContext ());
+        detection_widget->updateWidget ();
       }
       break;
 
@@ -347,7 +349,8 @@ void ILSDCrossProfileView::keyPressed (int key, int scancode,
         item_ctrl->incScan (-1);
         item->updateProfile ();
         update ();
-        detection_widget->paintEvent (getContext ());
+//        detection_widget->paintEvent (getContext ());
+        detection_widget->updateWidget ();
       }
       break;
   }
@@ -358,7 +361,8 @@ void ILSDCrossProfileView::rebuildScans ()
 {
   item->rebuildScans ();
   update ();
-  detection_widget->paintEvent (getContext ());
+//  detection_widget->paintEvent (getContext ());
+  detection_widget->updateWidget ();
 }
 
 

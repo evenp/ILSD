@@ -84,8 +84,11 @@ ILSDDetectionWidget::ILSDDetectionWidget ()
   tiles_loaded = false;
   picking = false;
   udef = false;
+  oldudef = false;
   nodrag = true;
-  with_aux_update = true;
+  bMousePressed = false;
+  with_aux_update = false;
+  to_update = false;
   tiledisp = true;
   ctrack_style = CTRACK_DISP_SCANS;
   ridge_style = RIDGE_DISP_CENTER;
@@ -117,6 +120,8 @@ ILSDDetectionWidget::ILSDDetectionWidget ()
   analyzed_color = ASColor::BLACK;
   track_width = DEFAULT_MEAN_TRACK_WIDTH;
 
+  width = 0;
+  height = 0;
   maxWidth = 768;
   maxHeight = 512;
   xMaxShift = 0;
@@ -1172,6 +1177,13 @@ void ILSDDetectionWidget::closeLongProfileView ()
 }
 
 
+void ILSDDetectionWidget::updateWidget ()
+{
+  to_update = true;
+  with_aux_update = true;
+}
+
+
 void ILSDDetectionWidget::paintEvent (GLWindow* drawWindow)
 {
   int resX, resY;
@@ -1189,9 +1201,9 @@ void ILSDDetectionWidget::paintEvent (GLWindow* drawWindow)
                       | ImGuiWindowFlags_NoDecoration
                       | ImGuiWindowFlags_NoInputs))
     {
-      with_aux_update = false;
-      displayDetectionResult ();
-      with_aux_update = true;
+//      with_aux_update = false;
+      if (to_update) displayDetectionResult ();
+//      with_aux_update = true;
       augmentedImage.setZoom (zoom);
       augmentedImage.setDisplayPosition (xShift, yShift);
       augmentedImage.Draw (drawWindow);
@@ -1392,7 +1404,7 @@ void ILSDDetectionWidget::updateMeasuring ()
       Ridge *rdg = rdetector.getRidge ();
       if (rdg != NULL) rdg->updateMeasure ();
     }
-    display();
+    display ();
   }
 }
 
@@ -1652,9 +1664,9 @@ void ILSDDetectionWidget::display ()
   if (udef)
   {
     if (p1.equals (p2)) displayBackground ();
-    else displayDetectionResult ();
+    else updateWidget ();
   }
-  else displayDetectionResult ();
+  else updateWidget ();
 }
 
 
@@ -1717,6 +1729,9 @@ void ILSDDetectionWidget::displayDetectionResult ()
 
   if (cp_view != NULL && udef && ! p1.equals (p2))
     displayAnalyzedScan (painter);
+
+  to_update = false;
+  with_aux_update = false;
 }
 
 
@@ -2268,7 +2283,7 @@ void ILSDDetectionWidget::selectStroke (Pt2i pt)
     tdetector.clear ();
     std::cout << "Missed" << std::endl;
   }
-  else displayDetectionResult ();
+  else updateWidget ();
 }
 
 

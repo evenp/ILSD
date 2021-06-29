@@ -36,6 +36,8 @@ ILSDLongProfileItem::ILSDLongProfileItem (ILSDItemControl *item_ctrl)
 {
   ctrl = item_ctrl;
   drawable = false;
+  zmin = 0.0f;
+  zmax = 0.0f;
 
   alti_area_margin = 6;
   alti_left_margin = alti_area_margin;

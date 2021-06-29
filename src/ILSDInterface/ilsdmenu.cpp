@@ -1368,7 +1368,7 @@ void ILSDMenu::drawCrossProfileMenu (GLWindow* parent)
           if (reset) ictrl->setScan (0);
           else ictrl->incScan (outval);
           det_widget->getCrossProfileView()->update ();
-          det_widget->paintEvent (GLWindow::getMainWindow ());
+          det_widget->updateWidget ();
         }
       }
 
@@ -1490,7 +1490,7 @@ void ILSDMenu::drawLongProfileMenu (GLWindow* parent)
         }
       }
       ImGui::SameLine (SCUTPOS);
-      ImGui::TextDisabled ("&");
+      ImGui::TextDisabled (")");
       ImGui::Separator ();
     }
 

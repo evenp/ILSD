@@ -160,15 +160,15 @@ protected:
 
   /** Rendered image. */
   ASImage* structImage;
-  /* Analysed image width. */
+  /** Analysed image width. */
   int imageWidth;
   /** Analyzed image height. */
   int imageHeight;
   /** Points grid. */
   IPtTileSet* ptset;
-
   /** Image to meter ratio : inverse of cell size. */
   float iratio;
+
   /** Longitudinal profile of points. */
   std::vector<Pt2f> profile;
   /** Indexes of profile points. */
@@ -197,12 +197,6 @@ protected:
   Pt2i p1;
   /** Input stroke end point. */
   Pt2i p2;
-  /** Input stroke vector. */
-  Vr2f p12;
-  /** Input stroke length (in pixels). */
-  float l12;
-  /** Input stroke scan offset. */
-  float d12;
 
 
   /**

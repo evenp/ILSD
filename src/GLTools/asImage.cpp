@@ -60,8 +60,9 @@ bool ASImage::save(const char* newFilePath, const char* fileFormat) const
 
 void ASImage::operator=(const ASImage& other)
 {
-	if (textureData) delete textureData;
-	textureData = new uint32_t[other.imageSize.x * other.imageSize.y];
+//	if (textureData) delete textureData;
+//	textureData = new uint32_t[other.imageSize.x * other.imageSize.y];
+	textureData = (uint32_t*)realloc(textureData,other.imageSize.x * other.imageSize.y * sizeof(uint32_t));
 	imageSize = other.imageSize;
 	memcpy(textureData, other.textureData, sizeof(int) * other.imageSize.x * other.imageSize.y);
 	bIsTextureDirty = true;

@@ -496,8 +496,6 @@ protected:
   int long_view_width;
   /** Longitudinal profile view height. */
   int long_view_height;
-  /** Longitudinal profile view height. */
-  int long_prof_height;
   /** Scan points zoom factor. */
   int scan_resol;
 

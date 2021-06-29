@@ -629,6 +629,11 @@ public:
   void mouseMoveEvent (GLWindow* parentWindow);
 
   /**
+   * \brief Requests a main window update.
+   */
+  void updateWidget ();
+
+  /**
    * \brief Updates the widget drawing.
    */
   void paintEvent (GLWindow* drawWindow);
@@ -709,6 +714,8 @@ private:
   bool bMousePressed;
   /** Flag indicating if picking mode is set. */
   bool picking;
+  /** Flag indicating if a main window repaint is required. */
+  bool to_update;
   /** Flag indicating if no external repaint is required. */
   bool with_aux_update;
   /** Flag indicating if the detection is user defined. */
@@ -777,7 +784,7 @@ private:
   /** Detector mode. */
   int det_mode;
   /** Flag indicating if the window title should change. */
-  int new_title;
+  bool new_title;
   /** Carriage track detector. */
   CTrackDetector tdetector;
   /** Ridge structure detector. */
@@ -808,7 +815,7 @@ private:
   /** Delineated tracks width. */
   int track_width;
   /** Performance evaluation mode status. */
-  int perf_mode;
+  bool perf_mode;
 
   /** Parameter registration server. */
   IniLoader *ini_load;
