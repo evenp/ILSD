@@ -33,6 +33,13 @@ const int IPtTile::MIN_CELL_SIZE = 100;
 const int IPtTile::TOP = 1;
 const int IPtTile::MID = 5;
 const int IPtTile::ECO = 10;
+const std::string IPtTile::TOP_DIR = std::string ("top/");
+const std::string IPtTile::MID_DIR = std::string ("mid/");
+const std::string IPtTile::ECO_DIR = std::string ("eco/");
+const std::string IPtTile::TOP_PREFIX = std::string ("top_");
+const std::string IPtTile::MID_PREFIX = std::string ("mid_");
+const std::string IPtTile::ECO_PREFIX = std::string ("eco_");
+const std::string IPtTile::TIL_SUFFIX = std::string (".til");
 
 
 IPtTile::IPtTile (int nbrows, int nbcols)
@@ -53,6 +60,24 @@ IPtTile::IPtTile (int nbrows, int nbcols)
 IPtTile::IPtTile (std::string name)
 {
   fname = name;
+  cols = 1;
+  rows = 1;
+  xmin = 0;
+  ymin = 0;
+  zmax = 0;
+  nb = 0;
+  csize = 1;
+  cells = NULL;
+  points = NULL;
+}
+
+
+IPtTile::IPtTile (const std::string &dir, const std::string &name, int acc)
+{
+  fname = dir;
+  if (acc == TOP) fname += TOP_DIR + TOP_PREFIX + name + TIL_SUFFIX;
+  else if (acc == MID) fname += MID_DIR + MID_PREFIX + name + TIL_SUFFIX;
+  else if (acc == ECO) fname += ECO_DIR + ECO_PREFIX + name + TIL_SUFFIX;
   cols = 1;
   rows = 1;
   xmin = 0;
@@ -345,6 +370,12 @@ void IPtTile::save (std::string name) const
 }
 
 
+void IPtTile::save () const
+{
+  save (fname);
+}
+
+
 int IPtTile::cellMaxSize () const
 {
   int max = 0;
@@ -402,11 +433,8 @@ bool IPtTile::load (std::string name, bool all)
 bool IPtTile::load (bool all)
 {
   std::ifstream fpts (fname.c_str (), std::ios::in | std::ifstream::binary);
-  if (! fpts)
-  {
-    std::cout << "Loading of " << fname << " failed" << std::endl;
-    return false;
-  }
+  if (! fpts) return false;
+
   fpts.read ((char *) (&cols), sizeof (int));
   fpts.read ((char *) (&rows), sizeof (int));
   fpts.read ((char *) (&xmin), sizeof (int64_t));

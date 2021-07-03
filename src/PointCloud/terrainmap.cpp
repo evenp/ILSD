@@ -38,6 +38,7 @@ const int TerrainMap::DEFAULT_PAD_SIZE = 3;
 
 const float TerrainMap::RELIEF_AMPLI = 5.0f;
 const float TerrainMap::LIGHT_ANGLE_INCREMENT = 0.03f;
+const std::string TerrainMap::NVM_SUFFIX = std::string (".nvm");
 
 
 TerrainMap::TerrainMap ()

@@ -1680,15 +1680,12 @@ void ILSDMenu::importDTMTiles (const std::vector<std::string>& paths)
   // Creates the new TIL tile
   std::string tilfile = TIL_DIR;
   if (det_widget->cloudAccess () == IPtTile::TOP)
-    tilfile += std::string (TILE_ACCESS_DIR_TOP)
-               + std::string (TILE_ACCESS_PREF_TOP);
+    tilfile += IPtTile::TOP_DIR + IPtTile::TOP_PREFIX;
   else if (det_widget->cloudAccess () == IPtTile::MID)
-    tilfile += std::string (TILE_ACCESS_DIR_MID)
-               + std::string (TILE_ACCESS_PREF_MID);
+    tilfile += IPtTile::MID_DIR + IPtTile::MID_PREFIX;
   else if (det_widget->cloudAccess () == IPtTile::ECO)
-    tilfile += std::string (TILE_ACCESS_DIR_ECO)
-               + std::string (TILE_ACCESS_PREF_ECO);
-  tilfile += outname + std::string (".til");
+    tilfile += IPtTile::ECO_DIR + IPtTile::ECO_PREFIX;
+  tilfile += outname + IPtTile::TIL_SUFFIX;
   int subdiv = det_widget->gridSubdivisionFactor ();
   IPtTile tile ((tilheight * subdiv) / det_widget->cloudAccess (),
                 (tilwidth * subdiv) / det_widget->cloudAccess ());

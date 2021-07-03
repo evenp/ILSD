@@ -41,7 +41,7 @@
 #include <chrono>
 #include <thread>
 
-#define FONTS_PATH "../Font/"
+#define FONTS_PATH "font/"
 #define USED_FONT "Roboto-Medium.ttf"
 
 GLWindow* GLWindow::MainWindow = nullptr;

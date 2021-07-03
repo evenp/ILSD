@@ -25,6 +25,7 @@
 #ifndef TERRAIN_MAP_H
 #define TERRAIN_MAP_H
 
+#include <string>
 #include "pt3f.h"
 #include "pt2i.h"
 
@@ -45,6 +46,8 @@ public:
   static const int SHADE_SLOPE;
   /** Default value for the pad size (tile rows or columns). */
   static const int DEFAULT_PAD_SIZE;
+  /** DTM map file suffix. */
+  static const std::string NVM_SUFFIX;
 
 
   /**

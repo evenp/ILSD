@@ -30,13 +30,6 @@
 #include <inttypes.h>
 #include "pt3i.h"
 
-#define TILE_ACCESS_DIR_TOP "top/"
-#define TILE_ACCESS_DIR_MID "mid/"
-#define TILE_ACCESS_DIR_ECO "eco/"
-#define TILE_ACCESS_PREF_TOP "top_"
-#define TILE_ACCESS_PREF_MID "mid_"
-#define TILE_ACCESS_PREF_ECO "eco_"
-
 
 /** 
  * @class ipttile.h
@@ -56,6 +49,20 @@ public:
   static const int MID;
   /** Sustainable tile access mode. */
   static const int ECO;
+  /** Relative path to top mode tile directory. */
+  static const std::string TOP_DIR;
+  /** Relative path to mid mode tile directory. */
+  static const std::string MID_DIR;
+  /** Relative path to eco mode tile directory. */
+  static const std::string ECO_DIR;
+  /** Top tile file prefix. */
+  static const std::string TOP_PREFIX;
+  /** Mid tile file prefix. */
+  static const std::string MID_PREFIX;
+  /** Eco tile file prefix. */
+  static const std::string ECO_PREFIX;
+  /** Point file suffix. */
+  static const std::string TIL_SUFFIX;
 
 
   /**
@@ -66,10 +73,18 @@ public:
   IPtTile (int nbrows = 1, int nbcols = 1);
 
   /**
-   * \brief Creates a point tile with given file name.
+   * \brief Creates a point tile.
    * @params name Tile file name.
    */
   IPtTile (std::string name);
+
+  /**
+   * \brief Creates a point tile.
+   * @params dir Tile file directory.
+   * @params name Tile name.
+   * @params acc Access type.
+   */
+  IPtTile (const std::string &dir, const std::string &name, int acc);
 
   /**
    * \brief Deletes the point tile.
@@ -241,9 +256,14 @@ public:
 
   /**
    * \brief Saves the tile in a file.
-   * @param name File name.
+   * @param name Specific tile name.
    */
   void save (std::string name) const;
+
+  /**
+   * \brief Saves the tile in a file.
+   */
+  void save () const;
 
   /**
    * \brief Loads the tile from a file.

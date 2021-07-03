@@ -57,7 +57,7 @@ public:
   void clear ();
 
   /**
-   * \brief Creates and adds a new point tile to the tile vector. 
+   * \brief Creates and adds a new point tile to the tile vector.
    * Return true in case of success, false otherwise.
    * @param name Tile file name.
    * @param complete Only loads headers if set to false.
@@ -65,7 +65,18 @@ public:
   bool addTile (std::string name, bool complete = true);
 
   /**
-   * \brief Adds an already created point tile to the tile vector. 
+   * \brief Creates and adds a new point tile to the tile vector.
+   * Return true in case of success, false otherwise.
+   * If the access type is not available, a new tile is created and saved
+   *   from an alternative access.
+   * @param dir Tile file directory.
+   * @param name Tile name.
+   * @param access Required access type.
+   */
+  bool addTile (const std::string &dir, const std::string &name, int access);
+
+  /**
+   * \brief Adds an already created point tile to the tile vector.
    * @param tile Created point tile to be added.
    */
   void addTile (IPtTile *tile);

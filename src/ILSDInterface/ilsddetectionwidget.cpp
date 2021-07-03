@@ -44,14 +44,14 @@
 #define DEFAULT_TILE_DIR std::string("./tiles/")
 #define DEFAULT_TILE_FILE std::string("last")
 #define NVM_DIR std::string("./nvm/")
-#define NVM_SUFFIX std::string(".nvm")
 #define TIL_DIR std::string("./til/")
-#define TIL_SUFFIX std::string(".til")
 #define DEFAULT_STROKE_DIR std::string("./tests/")
 #define DEFAULT_STROKE_FILE std::string("test")
 #define DEFAULT_MLINE_SUFFIX std::string("_cplt.mln")
 #define TILE_NAME_MAX_LENGTH 200
 
+
+const std::string ILSDDetectionWidget::VERSION = "1.1.1";
 
 const int ILSDDetectionWidget::MODE_NONE = 0;
 const int ILSDDetectionWidget::MODE_CTRACK = 1;
@@ -859,23 +859,14 @@ void ILSDDetectionWidget::loadTiles (const std::string& path)
       input >> sval;
       if (input.eof ()) reading = false;
       // else
-      if (sval != "")
+      else if (sval != "")
       {
         string nvmfile (NVM_DIR);
         string ptsfile (TIL_DIR);
-        if (cloud_access == IPtTile::TOP)
-          ptsfile += string (TILE_ACCESS_DIR_TOP)
-                     + string (TILE_ACCESS_PREF_TOP);
-        else if (cloud_access == IPtTile::MID)
-          ptsfile += string (TILE_ACCESS_DIR_MID)
-                     + string (TILE_ACCESS_PREF_MID);
-        else if (cloud_access == IPtTile::ECO)
-          ptsfile += string (TILE_ACCESS_DIR_ECO)
-                     + string (TILE_ACCESS_PREF_ECO);
-        nvmfile += sval + string (NVM_SUFFIX);
-        ptsfile += sval + string (TIL_SUFFIX);
+        nvmfile += sval + TerrainMap::NVM_SUFFIX;
         bool tl = dtm_map.addNormalMapFile (nvmfile);
-        if (tl) tiles_loaded = ptset.addTile (ptsfile) || tiles_loaded;
+        if (tl) tiles_loaded = ptset.addTile (TIL_DIR, std::string (sval),
+                                              cloud_access) || tiles_loaded;
       }
     }
   }
@@ -966,11 +957,11 @@ void ILSDDetectionWidget::setCloudAccess (int type)
 {
   string prefix (TIL_DIR);
   if (type == IPtTile::TOP)
-    prefix += string (TILE_ACCESS_DIR_TOP) + string (TILE_ACCESS_PREF_TOP);
+    prefix += IPtTile::TOP_DIR + IPtTile::TOP_PREFIX;
   else if (type == IPtTile::MID)
-    prefix += string (TILE_ACCESS_DIR_MID) + string (TILE_ACCESS_PREF_MID);
+    prefix += IPtTile::MID_DIR + IPtTile::MID_PREFIX;
   else if (type == IPtTile::ECO)
-    prefix += string (TILE_ACCESS_DIR_ECO) + string (TILE_ACCESS_PREF_ECO);
+    prefix += IPtTile::ECO_DIR + IPtTile::ECO_PREFIX; 
   ptset.updateAccessType (cloud_access, type, prefix);
   cloud_access = type;
 }

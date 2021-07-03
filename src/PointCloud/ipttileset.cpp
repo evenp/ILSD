@@ -89,8 +89,51 @@ bool IPtTileSet::addTile (std::string name, bool all)
       vectiles.push_back (tile);
       return true;
     }
+    else delete tile;
   }
   return false;
+}
+
+
+bool IPtTileSet::addTile (const std::string &dir, const std::string &name,
+                          int access)
+{
+  bool found = false;
+  int acc[2];
+  int alt = 0;
+  if (access != IPtTile::MID) acc[alt++] = IPtTile::MID;
+  if (access != IPtTile::TOP) acc[alt++] = IPtTile::TOP;
+  if (access != IPtTile::ECO) acc[alt++] = IPtTile::ECO;
+  if (tiles == NULL)
+  {
+    IPtTile *tile = new IPtTile (dir, name, access);
+    if (tile->load ())
+    {
+      vectiles.push_back (tile);
+      found = true;
+    }
+    else
+    {
+      for (int i = 0; i < 2 && ! found; i++)
+      {
+        IPtTile *extile = new IPtTile (dir, name, acc[i]);
+        if (extile->load ())
+        {
+          tile->setSize ((extile->countOfColumns () * acc[i]) / access,
+                         (extile->countOfRows () * acc[i]) / access);
+          tile->setArea (extile->xref (), extile->yref (), extile->top (),
+                         IPtTile::MIN_CELL_SIZE * access);
+          tile->setPoints (*extile);
+          tile->save ();
+          vectiles.push_back (tile);
+          found = true;
+        }
+        delete extile;
+      }
+      if (! found) delete tile;
+    }
+  }
+  return found;
 }
 
 

@@ -44,6 +44,9 @@ class ILSDDetectionWidget
 {
 public:
 
+  /** Version number */
+  static const std::string VERSION;
+
   /** Detector mode : simple analysis. */
   static const int MODE_NONE;
   /** Detector mode : detection of carriage tracks. */
