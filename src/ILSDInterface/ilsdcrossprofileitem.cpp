@@ -392,7 +392,7 @@ void ILSDCrossProfileItem::paintAlignedScans ()
     cy += offset * scan_res;
   }
   int minscan = ctrl->minScan ();
-  while (num > minscan)
+  while (num >= minscan && cy < lowbound)
   {
     if (ctrl->scan () == num) cy += scan_res;
     discan = getDisplayScan (num);
@@ -428,8 +428,7 @@ void ILSDCrossProfileItem::paintAlignedScans ()
     }
     cy += scan_res;
     if (ctrl->scan () == num) cy += scan_res;
-    if (cy > lowbound) num = ctrl->minScan ();
-    else num--;
+    num--;
   }
 
   // Draws upper part (left side)
@@ -442,7 +441,7 @@ void ILSDCrossProfileItem::paintAlignedScans ()
     cy -= offset * scan_res;
   }
   int maxscan = ctrl->maxScan ();
-  while (num < maxscan)
+  while (num <= maxscan && cy >= scan_area_margin)
   {
     if (ctrl->scan () == num) cy -= scan_res;
     discan = getDisplayScan (num);
@@ -478,8 +477,7 @@ void ILSDCrossProfileItem::paintAlignedScans ()
     }
     cy -= scan_res;
     if (ctrl->scan () == num) cy -= scan_res;
-    if (cy < scan_area_margin) num = ctrl->maxScan ();
-    else num++;
+    num++;
   }
   paintMeasureSection ();
 }

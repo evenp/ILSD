@@ -638,6 +638,7 @@ public:
 
   /**
    * \brief Updates the widget drawing.
+   * Never call out of imgui context.
    */
   void paintEvent (GLWindow* drawWindow);
 

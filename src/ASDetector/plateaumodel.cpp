@@ -35,8 +35,6 @@ const float PlateauModel::DEFAULT_MAX_LENGTH = 6.0f;
 const float PlateauModel::MIN_MAX_LENGTH_TOLERANCE = 2.0f;
 const float PlateauModel::MAX_MAX_LENGTH_TOLERANCE = 12.0f;
 
-const float PlateauModel::PLATEAU_MAX_INTERRUPTION = 0.25f;
-
 const float PlateauModel::DEFAULT_THICKNESS_TOLERANCE = 0.23f;
 const float PlateauModel::MIN_THICKNESS_TOLERANCE = 0.05f;
 const float PlateauModel::MAX_THICKNESS_TOLERANCE = 0.5f;
@@ -58,6 +56,7 @@ const float PlateauModel::HEIGHT_INCREMENT = 0.05f;
 const float PlateauModel::POS_INCREMENT = 0.05f;
 const float PlateauModel::LENGTH_INCREMENT = 0.1f;
 
+const int PlateauModel::PLATEAU_MAX_INTERRUPTION = 0;
 const int PlateauModel::BS_PINCH_MARGIN = 50;
 const int PlateauModel::DEFAULT_BS_MAX_TILT = 14;
 const int PlateauModel::DEFAULT_TAIL_MIN_SIZE = 10;

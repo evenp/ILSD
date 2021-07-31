@@ -213,7 +213,7 @@ public:
   /**
    * \brief Returns the maximal number of successive outliers in a plateau.
    */
-  inline float maxInterruption () const { return PLATEAU_MAX_INTERRUPTION; }
+  inline int maxInterruption () const { return PLATEAU_MAX_INTERRUPTION; }
 
   /**
    * \brief Returns the blurred segment thickness margin after pinching.
@@ -269,8 +269,6 @@ private :
 
   /** Minimal number of points to detect a plateau. */
   static const int PLATEAU_MIN_PTS;
-  /** Maximal number of successive interruptions (height artefacts). */
-  static const float PLATEAU_MAX_INTERRUPTION;
   /** Default maximal thickness of a plateau. */
   static const float DEFAULT_THICKNESS_TOLERANCE;
   /** Thickness variation when let flexible. */
@@ -301,6 +299,8 @@ private :
   static const float MIN_POS_TOLERANCE;
   /** Default minimal count of optimal height points used. */
   static const float OPT_HEIGHT_MIN_USE;
+  /** Maximal number of successive interruptions (height artefacts). */
+  static const int PLATEAU_MAX_INTERRUPTION;
   /** Pinch margin for blurred segment extension. */
   static const int BS_PINCH_MARGIN;
   /** Default value for maximal blurred segment tilt. */
