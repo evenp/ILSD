@@ -105,7 +105,7 @@ void ILSDStripCrossProfile::buildScans (Pt2i pt1, Pt2i pt2)
   delete ds;
 
   // Gets a image scan iterator
-  ds = scanp.getScanner (
+  ds = scani.getScanner (
     Pt2i ((p1.x () + p2.x ()) / 2, (p1.y () + p2.y ()) / 2),
     p1.vectorTo(p2).orthog (), ctrl->straightStripWidth ());
 
@@ -157,7 +157,7 @@ void ILSDStripCrossProfile::buildScans (Pt2i pt1, Pt2i pt2)
   }
   delete ds;
   ctrl->setMinScan (minscan);
-  ctrl->setMaxScan (maxscan);
+  ctrl->setMaxScan (maxscan - 1);
 
   // Updates local position reference
   double lsz = ctrl->straightStripWidth () /
@@ -292,8 +292,8 @@ void ILSDStripCrossProfile::updateDrawing ()
            / (float) ctrl->straightStripWidth ();
 
   // Sets scan range
-  ctrl->setMinScan (- 1 - (int) (rightiscan.size ()));
-  ctrl->setMaxScan ((int) (leftiscan.size ()));
+  ctrl->setMinScan (- (int) (rightiscan.size ()));
+  ctrl->setMaxScan ((int) (leftiscan.size ()) - 1);
 
   // Sets height reference
   href = (ctrl->isStaticHeight () ? href0 : hrefc);
