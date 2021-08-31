@@ -233,7 +233,7 @@ bool IPtTile::loadXYZFile (std::string ptsfile, int subdiv)
   }
 
   // Temporary cloud memory release
-  for (int i = 0; i < rows; i++) delete [] xyzcells[i];
+  for (int i = 0; i < lrow; i++) delete [] xyzcells[i];
   delete [] xyzcells;
   return true;
 }
