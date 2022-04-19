@@ -51,7 +51,7 @@
 #define TILE_NAME_MAX_LENGTH 200
 
 
-const std::string ILSDDetectionWidget::VERSION = "1.1.3";
+const std::string ILSDDetectionWidget::VERSION = "1.1.4";
 
 const int ILSDDetectionWidget::MODE_NONE = 0;
 const int ILSDDetectionWidget::MODE_CTRACK = 1;

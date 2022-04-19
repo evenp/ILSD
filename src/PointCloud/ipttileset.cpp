@@ -196,7 +196,7 @@ bool IPtTileSet::create ()
 bool IPtTileSet::loadPoints ()
 {
   for (int i = 0; i < tcols * trows; i ++)
-    if (!tiles[i]->load ()) return false;
+    if (tiles[i] != NULL && ! tiles[i]->load ()) return false;
   return true;
 }
 
@@ -241,6 +241,55 @@ int IPtTileSet::cellSize (int i, int j) const
 {
   IPtTile *tile = tiles[(j/theight)*tcols+(i/twidth)];
   return (tile != NULL ? tile->cellSize (i % twidth, j % theight) : 0);
+}
+
+
+bool IPtTileSet::collectPoints (std::vector<Pt3i> &pts, int i, int j) // const
+{
+  int icell = i / cdiv, jcell = j / cdiv;                // cdiv = 10 avec over
+  int itile = icell / twidth, jtile = jcell / theight;
+  IPtTile *tile = tiles[jtile * tcols + itile];
+  if (tile != NULL)
+  {
+    if (tile->unloaded ()) return false;
+    icell = icell - itile * tile->countOfColumns ();
+    jcell = jcell - jtile * tile->countOfRows ();
+    int nbpts = tile->cellSize (icell, jcell);
+    if (nbpts != 0)
+    {
+      Pt3i *pt = tile->cellStartPt (icell, jcell);
+      if (cdiv == 1)
+      {
+        for (int i = 0; i < nbpts; i++)
+        {
+          pts.push_back (Pt3i (txspread * itile + pt->x (),
+                               tyspread * jtile + pt->y (),
+                               pt->z ()));
+          pt ++;
+        }
+      }
+      else
+      {
+        int cxy = tile->cellSize () / cdiv;
+        int cxmin = icell * tile->cellSize () + (i % cdiv) * cxy;
+        int cymin = jcell * tile->cellSize () + (j % cdiv) * cxy;
+        int cxmax = cxmin + cxy;
+        int cymax = cymin + cxy;
+
+        Pt3i *ptfin = pt + nbpts;
+        while (pt->y () < cymin && pt != ptfin) pt ++;
+        while (pt->x () < cxmin && pt != ptfin) pt ++;
+        while (pt->x () < cxmax && pt->y () < cymax && pt != ptfin)
+        {
+          pts.push_back (Pt3i (txspread * itile + pt->x (),
+                               tyspread * jtile + pt->y (),
+                               pt->z ()));
+          pt ++;
+        }
+      }
+    }
+  }
+  return true;
 }
 
 

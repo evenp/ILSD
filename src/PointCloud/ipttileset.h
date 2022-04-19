@@ -221,6 +221,17 @@ public:
 
   /**
    * \brief Pushes the points of given tile subcell in provided vector.
+   *   Points are transfered in integral millimeter unit.
+   *   Tiles are assumed to be organized in sorted sub-cells.
+   * Returns whether tile points are effectively loaded.
+   * @param pts Provided vector of points.
+   * @param i Tile subcell column.
+   * @param j Tile subcell row.
+   */
+  bool collectPoints (std::vector<Pt3i> &pts, int i, int j);// const;
+
+  /**
+   * \brief Pushes the points of given tile subcell in provided vector.
    *   Points are transfered in meter unit.
    *   Tiles are assumed to be organized in sorted sub-cells.
    * Returns whether tile points are effectively loaded.
