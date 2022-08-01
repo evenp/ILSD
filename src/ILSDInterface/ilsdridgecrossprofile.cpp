@@ -79,6 +79,7 @@ void ILSDRidgeCrossProfile::update ()
       if (ctrl->isAligned ()) paintAlignedScans ();
       else paintScans ();
       paintProfile ();
+      if (ctrl->isCurrentScanMeasured ()) updateMeasure ();
       // paintInfo (painter);
     }
     else
@@ -88,7 +89,6 @@ void ILSDRidgeCrossProfile::update ()
       ILSDCrossProfileItem::paintProfile ();
       // else paintStatus (painter);
     }
-    if (ctrl->isCurrentScanMeasured ()) updateMeasure ();
   }
 }
 

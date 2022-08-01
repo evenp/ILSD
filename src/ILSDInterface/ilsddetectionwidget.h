@@ -689,12 +689,6 @@ private:
   static const int THIN_PEN;
   /** Default value for thick lines width. */
   static const int THICK_PEN;
-  /** Default value for small track display width. */
-  static const int SMALL_TRACK_WIDTH;
-  /** Default value for large track display width. */
-  static const int LARGE_TRACK_WIDTH;
-  /** Default value for mean track display width. */
-  static const int DEFAULT_MEAN_TRACK_WIDTH;
   /** Tolerence for segment picking (in count of naive lines) */
   static const int SELECT_TOL;
 
@@ -814,10 +808,6 @@ private:
   int ridge_style;
   /** Selection display style. */
   int sel_style;
-  /** Delineated track cuts display modality. */
-  bool cuts_displayed;
-  /** Delineated tracks width. */
-  int track_width;
   /** Performance evaluation mode status. */
   bool perf_mode;
 

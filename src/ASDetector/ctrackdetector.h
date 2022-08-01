@@ -84,6 +84,11 @@ public:
   void clear ();
 
   /**
+   * \brief Avoids former detection clearance.
+   */
+  void preserveDetection ();
+
+  /**
    * \brief Returns the profile model used.
    */
   inline PlateauModel *model () { return &pfeat; }
@@ -129,6 +134,11 @@ public:
    * \brief Switches on or off the automatic detection modality.
    */
   inline void switchAutomatic () { auto_p = ! auto_p; }
+
+  /**
+   * \brief Sets the status of automatic detection modality.
+   */
+  inline void setAutomatic (bool status) { auto_p = status; }
 
   /**
    * \brief Sets the profile registration status on or off.
@@ -271,7 +281,7 @@ private :
   /** Default accepted count of successive plateau detection failures. */
   static const int DEFAULT_PLATEAU_LACK_TOLERANCE;
   /** Default tolered lack of both bounds detection. */
-  static const int DEFAULT_NOBOUNDS_TOLERANCE;
+  static const int NOBOUNDS_TOLERANCE;
   /** Initial track extent on each side of the central plateau. */
   static const int INITIAL_TRACK_EXTENT;
   /** Default count of registered center positions and heights. */
@@ -343,8 +353,6 @@ private :
   Pt2i ip1;
   /** Initial stroke second input point in DTM pixels. */
   Pt2i ip2;
-  /** Current distance in meters between input points. */
-  float l12;
 
   /** Position and height register size. */
   int posht_nb;

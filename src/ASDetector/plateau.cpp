@@ -126,7 +126,6 @@ bool Plateau::detect (const std::vector<Pt2f> &ptsh, bool all, float exh)
     }
     it ++;
   }
-
   h_min = meanh;
 
   // Checks if this height interval has enough points
@@ -194,7 +193,7 @@ bool Plateau::detect (const std::vector<Pt2f> &ptsh, bool all, float exh)
     status = PLATEAU_RES_OPTIMAL_HEIGHT_UNDER_USED;
     return false;
   }
-  if (ptsh[jmax].x () - ptsh[imin].x () < pmod->minLength ()) 
+  if (ptsh[e_num].x () - ptsh[s_num].x () < pmod->minLength ()) 
   {
     status = PLATEAU_RES_TOO_NARROW;
     return false;
@@ -446,14 +445,11 @@ bool Plateau::track (const std::vector<Pt2f> &ptsh, bool first_p,
   }
 
   status = PLATEAU_RES_OK;
-  if (status == PLATEAU_RES_OK)
+  if (first_p) setFirstBounds (ptsh);
+  else
   {
-    if (first_p) setFirstBounds (ptsh);
-    else
-    {
-      setBounds (ptsh);
-      setPosition (confdist * pmod->widthMoveTolerance ());
-    }
+    setBounds (ptsh);
+    setPosition (confdist * pmod->widthMoveTolerance ());
   }
 
   delete bsp;

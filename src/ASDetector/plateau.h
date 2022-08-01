@@ -181,6 +181,11 @@ public:
   inline bool reliable () const { return (s_ok && e_ok && w_ok); }
 
   /**
+   * \brief Returns whether bounds are finely bounded.
+   */
+  inline bool bounded () const { return (s_ok && e_ok); }
+
+  /**
    * \brief Indicates whether at least one bound lies in assigned tolerance.
    */
   inline bool possible () const { return (s_ok || e_ok); }
@@ -247,13 +252,6 @@ public:
    * \brief Returns the distance from reference end to end interval.
    */
   inline float distEnd () const { return edist; }
-
-  /**
-   * \brief Returns whether bounds are finely bounded.
-   */
-  inline bool bounded () const {
-    return ( s_int - s_ext <= pmod->sideShiftTolerance ()
-             && e_ext - e_int <= pmod->sideShiftTolerance ()); }
 
   /**
    * \brief Returns the reference start position.
@@ -337,9 +335,9 @@ public:
    */
   bool thinerThan (Plateau *pl) const;
 
-  void trace () const;
+//  void trace () const;
 
-  void traceExt (const std::vector<Pt2f> &ptsh) const;
+//  void traceExt (const std::vector<Pt2f> &ptsh) const;
 
 
 

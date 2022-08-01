@@ -23,7 +23,6 @@
 */
 
 #include "pt2i.h"
-#include <iostream>
 
 
 Pt2i::Pt2i ()

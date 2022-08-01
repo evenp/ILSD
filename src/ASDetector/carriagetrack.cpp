@@ -555,7 +555,7 @@ float CarriageTrack::relativeShiftLength () const
 
 void CarriageTrack::getPosition (
                          std::vector<Pt2i> &pts, std::vector<Pt2i> &pts2,
-                         int disp, float iratio, bool smoothed) 
+                         int disp, float iratio, bool smoothed)
 {
   if (startsec.plateau (0) != NULL)
   {
@@ -598,7 +598,7 @@ void CarriageTrack::addPlateauCenter (std::vector<Pt2i> &pt, int num, bool rev,
       float dist = (p12.x () * p1x.x () + p12.y () * p1x.y ()) / l12;
       if (rev)
       {
-        if (sdraw == -1 && dist < sint) sdraw = snum - 1;
+        if (sdraw == -1 && dist < sint) sdraw = (snum == 0 ? 0 : snum - 1);
       }
       else
       {
@@ -607,10 +607,10 @@ void CarriageTrack::addPlateauCenter (std::vector<Pt2i> &pt, int num, bool rev,
       snum ++;
       it ++;
     }
-    if (rev)
-    {
-      if (sdraw == -1) sdraw = (int) (scan->size ()) - 1;
-    }
+//    if (rev)
+//    {
+    if (sdraw == -1) sdraw = (int) (scan->size ()) - 1;
+//    }
     pt.push_back ((*scan)[sdraw]);
   }
 }
@@ -635,24 +635,24 @@ void CarriageTrack::addPlateauBounds (
       if (rev)
       {
         if (edraw == -1 && dist <= eint) edraw = snum;
-        if (sdraw == -1 && dist < sint) sdraw = snum - 1;
+        if (sdraw == -1 && dist < sint) sdraw = (snum == 0 ? 0 : snum - 1);
       }
       else
       {
         if (sdraw == -1 && dist >= sint) sdraw = snum;
-        if (edraw == -1 && dist > eint) edraw = snum - 1;
+        if (edraw == -1 && dist > eint) edraw = (snum == 0 ? 0 : snum - 1);
       }
       snum ++;
       it ++;
     }
-    if (rev)
-    {
-      if (sdraw == -1) sdraw = (int) (scan->size ()) - 1;
-    }
-    else
-    {
-      if (edraw == -1) edraw = (int) (scan->size ()) - 1;
-    }
+//    if (rev)
+//    {
+    if (sdraw == -1) sdraw = (int) (scan->size ()) - 1;
+//    }
+//    else
+//    {
+    if (edraw == -1) edraw = (int) (scan->size ()) - 1;
+//    }
     spt.push_back ((*scan)[sdraw]);
     ept.push_back ((*scan)[edraw]);
   }

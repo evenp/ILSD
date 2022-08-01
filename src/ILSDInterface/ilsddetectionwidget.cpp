@@ -51,7 +51,7 @@
 #define TILE_NAME_MAX_LENGTH 200
 
 
-const std::string ILSDDetectionWidget::VERSION = "1.1.4";
+const std::string ILSDDetectionWidget::VERSION = "1.1.5";
 
 const int ILSDDetectionWidget::MODE_NONE = 0;
 const int ILSDDetectionWidget::MODE_CTRACK = 1;
@@ -69,7 +69,6 @@ const int ILSDDetectionWidget::BACK_IMAGE = 2;
 
 const int ILSDDetectionWidget::THIN_PEN = 1;
 const int ILSDDetectionWidget::THICK_PEN = 3;
-const int ILSDDetectionWidget::DEFAULT_MEAN_TRACK_WIDTH = 6;
 const int ILSDDetectionWidget::SELECT_TOL = 5;
 
 const int ILSDDetectionWidget::SUBDIV = 5;
@@ -93,7 +92,6 @@ ILSDDetectionWidget::ILSDDetectionWidget ()
   ctrack_style = CTRACK_DISP_SCANS;
   ridge_style = RIDGE_DISP_CENTER;
   sel_style = SEL_THICK;
-  cuts_displayed = true;
   disp_saved = false;
   disp_detection = true;
   perf_mode = false;
@@ -118,7 +116,6 @@ ILSDDetectionWidget::ILSDDetectionWidget ()
   selection_color = ASColor::GREEN;
   tiles_color = ASColor::GREEN;
   analyzed_color = ASColor::BLACK;
-  track_width = DEFAULT_MEAN_TRACK_WIDTH;
 
   width = 0;
   height = 0;
@@ -1105,7 +1102,6 @@ void ILSDDetectionWidget::loadSelection (const std::vector<std::string>& paths)
           && pi2.x () < width && pi2.y () < height)
       {
         drawSelection (painter, pi1, pi2);
-        painter.setPen (ASPen (structure_color, track_width));
         if (det_mode == MODE_CTRACK)
         {
           tdetector.detect (pi1, pi2);
@@ -1920,24 +1916,24 @@ bool ILSDDetectionWidget::displayConnectedPlateau (ASPainter& painter,
       if (rev)
       {
         if (edraw == -1 && dist <= eint) edraw = snum;
-        if (sdraw == -1 && dist < sint) sdraw = snum - 1;
+        if (sdraw == -1 && dist < sint) sdraw = (snum == 0 ? 0 : snum - 1);
       }
       else
       {
         if (sdraw == -1 && dist >= sint) sdraw = snum;
-        if (edraw == -1 && dist > eint) edraw = snum - 1;
+        if (edraw == -1 && dist > eint) edraw = (snum == 0 ? 0 : snum - 1);
       }
       snum ++;
       it ++;
     }
-    if (rev)
-    {
-      if (sdraw == -1) sdraw = (int) (scan->size ()) - 1;
-    }
-    else
-    {
-      if (edraw == -1) edraw = (int) (scan->size ()) - 1;
-    }
+//    if (rev)
+//    {
+    if (sdraw == -1) sdraw = (int) (scan->size ()) - 1;
+//    }
+//    else
+//    {
+    if (edraw == -1) edraw = (int) (scan->size ()) - 1;
+//    }
     if (num == 0)
     {
       pt0.set ((*scan)[edraw].x (), height - 1 - (*scan)[edraw].y ());
@@ -2123,24 +2119,24 @@ bool ILSDDetectionWidget::displayConnectedBump (ASPainter& painter,
       if (rev)
       {
         if (edraw == -1 && dist <= eint) edraw = snum;
-        if (sdraw == -1 && dist < sint) sdraw = snum - 1;
+        if (sdraw == -1 && dist < sint) sdraw = (snum == 0 ? 0 : snum - 1);
       }
       else
       {
         if (sdraw == -1 && dist >= sint) sdraw = snum;
-        if (edraw == -1 && dist > eint) edraw = snum - 1;
+        if (edraw == -1 && dist > eint) edraw = (snum == 0 ? 0 : snum - 1);
       }
       snum ++;
       it ++;
     }
-    if (rev)
-    {
-      if (sdraw == -1) sdraw = (int) (scan->size ()) - 1;
-    }
-    else
-    {
-      if (edraw == -1) edraw = (int) (scan->size ()) - 1;
-    }
+//    if (rev)
+//    {
+    if (sdraw == -1) sdraw = (int) (scan->size ()) - 1;
+//    }
+//    else
+//    {
+    if (edraw == -1) edraw = (int) (scan->size ()) - 1;
+//    }
     if (num == 0)
     {
       if (ridge_style == RIDGE_DISP_CONNECT
@@ -2340,24 +2336,24 @@ bool ILSDDetectionWidget::selectConnectedPlateau (Pt2i pt,
       if (rev)
       {
         if (edraw == -1 && dist <= eint) edraw = snum;
-        if (sdraw == -1 && dist < sint) sdraw = snum - 1;
+        if (sdraw == -1 && dist < sint) sdraw = (snum == 0 ? 0 : snum - 1);
       }
       else
       {
         if (sdraw == -1 && dist >= sint) sdraw = snum;
-        if (edraw == -1 && dist > eint) edraw = snum - 1;
+        if (edraw == -1 && dist > eint) edraw = (snum == 0 ? 0 : snum - 1);
       }
       snum ++;
       it ++;
     }
-    if (rev)
-    {
-      if (sdraw == -1) sdraw = (int) (scan->size ()) - 1;
-    }
-    else
-    {
-      if (edraw == -1) edraw = (int) (scan->size ()) - 1;
-    }
+//    if (rev)
+//    {
+    if (sdraw == -1) sdraw = (int) (scan->size ()) - 1;
+//    }
+//    else
+//    {
+    if (edraw == -1) edraw = (int) (scan->size ()) - 1;
+//    }
     if (num == 0)
     {
       pt0.set ((*scan)[edraw].x (), height - 1 - (*scan)[edraw].y ());
