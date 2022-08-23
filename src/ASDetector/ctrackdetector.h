@@ -51,6 +51,8 @@ public:
   static const int RESULT_FAIL_NO_CENTRAL_PLATEAU;
   /** Extraction failure : no long enough sequence of plateaux. */
   static const int RESULT_FAIL_NO_CONSISTENT_SEQUENCE;
+  /** Extraction failure : no bounds for the section plateaux. */
+  static const int RESULT_FAIL_NO_BOUNDS;
   /** Extraction failure : maximal track absolute shift length. */
   static const int RESULT_FAIL_TOO_HECTIC_PLATEAUX;
   /** Extraction failure : minimal plateaux density not fillfiled. */
@@ -188,17 +190,6 @@ public:
     return (initial_track_extent != 0); }
 
   /**
-   * \brief Returns the status of tail plateaux pruning modality.
-   */
-  inline int tailPruning () const { return tail_pruning; }
-
-  /**
-   * \brief Toggles the tail plateaux pruning modality.
-   */
-  inline void switchTailPruning () {
-    if (++tail_pruning == 3) tail_pruning = 0; }
-
-  /**
    * \brief Returns the status of track absolute shift length pruning modality.
    */
   inline bool isShiftLengthPruning () const { return shift_length_pruning; }
@@ -320,14 +311,10 @@ private :
   PlateauModel pfeat;
   /** Tolered successive failures of plateaux detection. */
   int plateau_lack_tolerance;
-  /** Accepted count of successive plateau detection failures. */
-  int nobounds_tolerance;
   /** Initial track extent on each side of the central plateau. */
   int initial_track_extent;
   /** Indicates if point density is considered for tracking. */
   bool density_insensitive;
-  /** Tail plateaux pruning modality. */
-  int tail_pruning;
   /** Track absolute shift length pruning modality. */
   bool shift_length_pruning;
   /** Maximal track absolute shift length accepted. */

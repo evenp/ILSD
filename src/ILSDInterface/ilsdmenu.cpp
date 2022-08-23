@@ -764,6 +764,17 @@ void ILSDMenu::drawCTrackDetectionSubmenu (GLWindow* parent)
   ImGui::Separator ();
 
   {
+    int outputVal;
+    if (AsWidgets::MenuCartesianSlider (
+          "Tail minimal size", "N / SHIFT+N",
+          (float) (tdetector->model()->tailMinSize ()), outputVal))
+    {
+      tdetector->model()->incTailMinSize (outputVal);
+      det_widget->detectAndDisplay ();
+    }
+  }
+
+  {
     bool status = tdetector->isShiftLengthPruning ();
     if (ImGui::Checkbox ("Plateau stability control", &status))
     {
@@ -807,32 +818,6 @@ void ILSDMenu::drawCTrackDetectionSubmenu (GLWindow* parent)
           (float) (tdetector->minDensity ()), outputVal))
     {
       tdetector->incMinDensity (outputVal);
-      det_widget->detectAndDisplay ();
-    }
-  }
-
-  {
-    bool status = (tdetector->tailPruning () != 0);
-    if (ImGui::Checkbox ("Sparse tail pruning", &status))
-    {
-      if (status != (tdetector->tailPruning () != 0))
-      {
-        tdetector->switchTailPruning ();
-        if (status != (tdetector->tailPruning () != 0))
-          tdetector->switchTailPruning ();
-        det_widget->detectAndDisplay ();
-      }
-    }
-    ImGui::SameLine (SCUTPOS);
-    ImGui::TextDisabled ("Ctrl N");
-  }
-  {
-    int outputVal;
-    if (AsWidgets::MenuCartesianSlider (
-          "Tail minimal size", "N / SHIFT+N",
-          (float) (tdetector->model()->tailMinSize ()), outputVal))
-    {
-      tdetector->model()->incTailMinSize (outputVal);
       det_widget->detectAndDisplay ();
     }
   }

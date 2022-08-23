@@ -329,28 +329,12 @@ void ILSDKeyControl::processKey (GLWindow* parent,
       case GLFW_KEY_N :
         if (det_widget->mode () == ILSDDetectionWidget::MODE_CTRACK)
         {
-          if (mods & GLFW_MOD_CONTROL)
-          {
-            // Switches tail plateaux pruning
-            tdetector->switchTailPruning ();
-            int tpr = tdetector->tailPruning ();
-            if (tpr == 0)
-              cout << "Tail pruning modality off" << std::endl;
-            else if (tpr == 1)
-              cout << "Tail pruning modality on" << std::endl;
-            else if (tpr == 2)
-              cout << "Hard tail pruning modality on" << std::endl;
-            det_widget->detectAndDisplay ();
-          }
-          else
-          {
-            // Tunes tail min size for track tail pruning
-            tdetector->model()->incTailMinSize (
-                                     (mods & GLFW_MOD_SHIFT) ? -1 : 1);
-            std::cout << "Track tail min size = "
-                      << (tdetector->model()->tailMinSize ()) << std::endl;
-            det_widget->detectAndDisplay ();
-          }
+          // Tunes tail min size for track tail pruning
+          tdetector->model()->incTailMinSize (
+                                   (mods & GLFW_MOD_SHIFT) ? -1 : 1);
+          std::cout << "Track tail min size = "
+                    << (tdetector->model()->tailMinSize ()) << std::endl;
+          det_widget->detectAndDisplay ();
         }
         break;
 

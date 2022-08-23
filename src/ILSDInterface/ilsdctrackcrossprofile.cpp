@@ -596,30 +596,15 @@ void ILSDCTrackCrossProfile::paintInfo ()
       if (status == Plateau::PLATEAU_RES_NOT_ENOUGH_INPUT_PTS)
         painter.drawText (alti_area_margin, 10 * alti_area_margin,
             std::string ("Not enough points in input area"));
-      else if (status == Plateau::PLATEAU_RES_NOT_MEANINGFUL)
-        painter.drawText (alti_area_margin, 10 * alti_area_margin,
-            std::string ("Too small plateau for detection"));
       else if (status == Plateau::PLATEAU_RES_TOO_NARROW)
         painter.drawText (alti_area_margin, 10 * alti_area_margin,
             std::string ("Too narrow plateau"));
-      else if (status == Plateau::PLATEAU_RES_EMPTY_SCAN)
-        painter.drawText (alti_area_margin, 10 * alti_area_margin,
-            std::string ("Empty scan"));
       else if (status == Plateau::PLATEAU_RES_NOT_ENOUGH_ALT_PTS)
         painter.drawText (alti_area_margin, 10 * alti_area_margin,
             std::string ("Not enough points at input height"));
       else if (status == Plateau::PLATEAU_RES_NOT_ENOUGH_CNX_PTS)
         painter.drawText (alti_area_margin, 10 * alti_area_margin,
             std::string ("Not enough successive points at candidate height"));
-      else if (status == Plateau::PLATEAU_RES_NO_BOUND_DETECTED)
-        painter.drawText (alti_area_margin, 10 * alti_area_margin,
-            std::string ("Both start and end bounds undetected"));
-      else if (status == Plateau::PLATEAU_RES_NO_START_POS)
-        painter.drawText (alti_area_margin, 10 * alti_area_margin,
-            std::string ("Start bound undetected"));
-      else if (status == Plateau::PLATEAU_RES_NO_END_POS)
-        painter.drawText (alti_area_margin, 10 * alti_area_margin,
-            std::string ("End bound undetected"));
       else if (status == Plateau::PLATEAU_RES_NO_BOUND_POS)
         painter.drawText (alti_area_margin, 10 * alti_area_margin,
             std::string ("Both bounds undetected"));
@@ -674,6 +659,9 @@ void ILSDCTrackCrossProfile::paintStatus ()
     else if (status == CTrackDetector::RESULT_FAIL_NO_CONSISTENT_SEQUENCE)
       painter.drawText (alti_area_margin, 6 * alti_area_margin,
                         std::string ("No long enough sequence of plateaux"));
+    else if (status == CTrackDetector::RESULT_FAIL_NO_BOUNDS)
+      painter.drawText (alti_area_margin, 6 * alti_area_margin,
+                        std::string ("No plateau bounds found at start"));
     else if (status == CTrackDetector::RESULT_FAIL_TOO_HECTIC_PLATEAUX)
       painter.drawText (alti_area_margin, 6 * alti_area_margin,
                         std::string ("Too hectic plateaux sequence"));

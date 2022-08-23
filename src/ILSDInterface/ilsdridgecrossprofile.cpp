@@ -684,9 +684,6 @@ void ILSDRidgeCrossProfile::paintInfo ()
       else if (status == Bump::RES_TOO_NARROW)
         painter.drawText (alti_area_margin, 4 * alti_area_margin,
                           std::string ("Too narrow bump"));
-      else if (status == Bump::RES_EMPTY_SCAN)
-        painter.drawText (alti_area_margin, 4 * alti_area_margin,
-                          std::string ("Empty scan"));
       else if (status == Bump::RES_NO_BUMP_LINE)
         painter.drawText (alti_area_margin, 4 * alti_area_margin,
                           std::string ("No bump found"));

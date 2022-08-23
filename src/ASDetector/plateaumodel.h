@@ -55,6 +55,10 @@ public:
   static const float MIN_SIDE_SHIFT_TOLERANCE;
   /** Maximal value for maximal side shift between successive plateaux bound. */
   static const float MAX_SIDE_SHIFT_TOLERANCE;
+  /** Minimal value for maximal width move between successive plateaux bound. */
+  static const float MIN_WIDTH_MOVE_TOLERANCE;
+  /** Maximal value for maximal width move between successive plateaux bound. */
+  static const float MAX_WIDTH_MOVE_TOLERANCE;
 
 
   /**
@@ -192,6 +196,12 @@ public:
    * @param dir Increment direction: 1 if increment, -1 if decrement.
    */
   void incWidthMoveTolerance (int dir);
+
+  /**
+   * \brief Sets maximal width difference between successive plateaux bounds.
+   * @param val New width move value.
+   */
+  void setWidthMoveTolerance (float val);
 
   /**
    * \brief Returns the maximal blurred segment tilt (%).

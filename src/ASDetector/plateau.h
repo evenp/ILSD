@@ -44,22 +44,12 @@ public:
   static const int PLATEAU_RES_OK;
   /** Detection status : failed, not enough points in input scan. */
   static const int PLATEAU_RES_NOT_ENOUGH_INPUT_PTS;
-  /** Detection status : failed, length lower than critical length. */
-  static const int PLATEAU_RES_NOT_MEANINGFUL;
   /** Detection status : failed, length lower than minimal awaited value. */
   static const int PLATEAU_RES_TOO_NARROW;
-  /** Detection status : failed, empty scan. */
-  static const int PLATEAU_RES_EMPTY_SCAN;
   /** Detection status : failed, not enough points with same height. */
   static const int PLATEAU_RES_NOT_ENOUGH_ALT_PTS;
   /** Detection status : failed, not enough successive points. */
   static const int PLATEAU_RES_NOT_ENOUGH_CNX_PTS;
-  /** Detection status : failed, both start and end bounds undetected. */
-  static const int PLATEAU_RES_NO_BOUND_DETECTED;
-  /** Detection status : failed, start bound undetected. */
-  static const int PLATEAU_RES_NO_START_POS;
-  /** Detection status : failed, end bound undetected. */
-  static const int PLATEAU_RES_NO_END_POS;
   /** Detection status : failed, both bounds undetected. */
   static const int PLATEAU_RES_NO_BOUND_POS;
   /** Detection status : failed, too few optimal height points used. */
@@ -99,14 +89,13 @@ public:
   /**
    * \brief Detects the plateau in a scan knowing the neighboring plateau.
    * @param ptsh Scan points sorted by increasing distance to scan start bound.
-   * @param first_p Indicates if a first plateau is tracked.
    * @param lstart Awaited start position.
    * @param lend Awaited end position.
    * @param lheight Awaited altitude.
    * @param cshift Reference center shift.
    * @param confdist Distance to last reliable plateau (in count of stripes).
    */
-  bool track (const std::vector<Pt2f> &ptsh, bool first_p,
+  bool track (const std::vector<Pt2f> &ptsh,
               float lstart, float lend, float lheight,
               float cshift, int confdist);
 
@@ -375,43 +364,26 @@ private :
   /** Acceptation status. */
   bool accepted;
 
+  /** Used plateau model. */
+  PlateauModel *pmod;
+  /** Enclosing digital straight segment of plateau blurred segment. */
+  DigitalStraightSegment *dss;
+
+  /** Local height (for relative calculations). */
+  float locheight;
+  /** Reference altitude (in meter). */
+  float h_ref;
+  /** Minimal value of height interval. */
+  float h_min;
+
   /** Reference start position (in meter). */
   float s_ref;
   /** Reference end position (in meter). */
   float e_ref;
-  /** Reference altitude (in meter). */
-  float h_ref;
-
-  /** Distance of start reference to start bound interval. */
-  float sdist;
-  /** Distance of end reference to end bound interval. */
-  float edist;
-
-  /** Enclosing digital straight segment of plateau blurred segment. */
-  DigitalStraightSegment *dss;
-  /** Local height (for relative calculations). */
-  float locheight;
-
-  /** Estimated start position (in meter). */
-  float s_est;
-  /** Estimated end position (in meter). */
-  float e_est;
-  /** Status of plateau start detection. */
-  bool s_ok;
-  /** Status of plateau end detection. */
-  bool e_ok;
-  /** Status of plateau width detection. */
-  bool w_ok;
   /** Index of plateau start impact. */
   int s_num;
   /** Index of plateau end impact. */
   int e_num;
-
-  /** Minimal value of height interval. */
-  float h_min;
-  /** Number of points out of height interval. */
-  int nb_out;
-
   /** Measured max start position (in meter). */
   float s_int;
   /** Measured min end position (in meter). */
@@ -420,6 +392,21 @@ private :
   float s_ext;
   /** Measured max end position (in meter). */
   float e_ext;
+  /** Estimated start position (in meter). */
+  float s_est;
+  /** Estimated end position (in meter). */
+  float e_est;
+
+  /** Distance of start reference to start bound interval. */
+  float sdist;
+  /** Distance of end reference to end bound interval. */
+  float edist;
+  /** Status of plateau start detection. */
+  bool s_ok;
+  /** Status of plateau end detection. */
+  bool e_ok;
+  /** Status of plateau width detection. */
+  bool w_ok;
 
   /** Width change detection: 0 = no change, -1 = narrowing, +1 = widening. */
   int width_change;
@@ -427,9 +414,6 @@ private :
   float slope_est;
   /** Estimated track deviation. */
   float dev_est;
-
-  /** Used plateau model. */
-  PlateauModel *pmod;
 
 
   /**

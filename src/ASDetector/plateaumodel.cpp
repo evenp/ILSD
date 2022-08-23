@@ -47,6 +47,8 @@ const float PlateauModel::MAX_SIDE_SHIFT_TOLERANCE = 6.0f;
 
 const float PlateauModel::HEIGHT_FLEXIBILITY = 0.10f;
 const float PlateauModel::DEFAULT_PLATEAU_WIDTH_MOVE_TOLERANCE = 0.5f;
+const float PlateauModel::MIN_WIDTH_MOVE_TOLERANCE = 0.05f;
+const float PlateauModel::MAX_WIDTH_MOVE_TOLERANCE = 6.0f;
 const float PlateauModel::PLATEAU_BOUND_ACCURACY = 0.5f;
 const float PlateauModel::MIN_POS_TOLERANCE = 0.05f;
 const float PlateauModel::OPT_HEIGHT_MIN_USE = 0.7f;
@@ -170,6 +172,15 @@ void PlateauModel::incWidthMoveTolerance (int dir)
     width_move_tolerance = MIN_POS_TOLERANCE;
 }
 
+void PlateauModel::setWidthMoveTolerance (float val)
+{
+  width_move_tolerance = val;
+  if (width_move_tolerance < MIN_WIDTH_MOVE_TOLERANCE)
+    width_move_tolerance = MIN_WIDTH_MOVE_TOLERANCE;
+  if (width_move_tolerance > MAX_WIDTH_MOVE_TOLERANCE)
+    width_move_tolerance = MAX_WIDTH_MOVE_TOLERANCE;
+}
+
 
 void PlateauModel::incBSmaxTilt (int dir)
 {
@@ -191,7 +202,7 @@ void PlateauModel::incTailMinSize (int inc)
 void PlateauModel::setTailMinSize (int val)
 {
   tail_min_size = val;
-  if (tail_min_size < 2) tail_min_size = 2;
+  if (tail_min_size < 0) tail_min_size = 0;
 }
 
 

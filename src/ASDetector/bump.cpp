@@ -34,10 +34,9 @@ const int Bump::RES_NOT_ENOUGH_INPUT_PTS = -1;
 const int Bump::RES_HOLE_IN_INPUT_PTS = -2;
 const int Bump::RES_TOO_LOW = -3;
 const int Bump::RES_TOO_NARROW = -4;
-const int Bump::RES_EMPTY_SCAN = -5;
-const int Bump::RES_NO_BUMP_LINE = -6;
-const int Bump::RES_LINEAR = -7;
-const int Bump::RES_ANGULAR = -8;
+const int Bump::RES_NO_BUMP_LINE = -5;
+const int Bump::RES_LINEAR = -6;
+const int Bump::RES_ANGULAR = -7;
 
 const int Bump::DEF_NONE = 0;
 const int Bump::DEF_POSITION = 1;

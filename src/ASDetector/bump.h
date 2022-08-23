@@ -51,8 +51,6 @@ public:
   static const int RES_TOO_LOW;
   /** Detection status : failed, width lower than critical width. */
   static const int RES_TOO_NARROW;
-  /** Detection status : failed, empty scan. */
-  static const int RES_EMPTY_SCAN;
   /** Detection status : failed, no point over the baseline. */
   static const int RES_NO_BUMP_LINE;
   /** Detection status : failed, linear profile. */

@@ -51,7 +51,7 @@
 #define TILE_NAME_MAX_LENGTH 200
 
 
-const std::string ILSDDetectionWidget::VERSION = "1.1.5";
+const std::string ILSDDetectionWidget::VERSION = "1.1.6";
 
 const int ILSDDetectionWidget::MODE_NONE = 0;
 const int ILSDDetectionWidget::MODE_CTRACK = 1;
@@ -662,9 +662,7 @@ void ILSDDetectionWidget::saveCarTrack (IniLoader *ild)
         tdetector.isDensityPruning ());
   ild->SetPropertyAsInt ("CTrack", "MaxUndetectedRatio",
         tdetector.minDensity ());
-  ild->SetPropertyAsBool ("CTrack", "TailCompactnessTest",
-        (tdetector.tailPruning() != 0));
-  ild->SetPropertyAsInt ("CTrack", "MinTailLength",
+  ild->SetPropertyAsInt ("CTrack", "TailMinLength",
         tdetector.model()->tailMinSize ());
 }
 
@@ -713,18 +711,9 @@ void ILSDDetectionWidget::loadCarTrack (IniLoader *ild)
       tdetector.switchDensityPruning ();
   tdetector.setMinDensity (ild->GetPropertyAsInt (
       "CTrack", "MaxUndetectedRatio", tdetector.minDensity ()));
-  val = (tdetector.tailPruning () != 0);
-  if (val)
-  {
-    if (ild->GetPropertyAsBool ("CTrack", "TailCompactnessTest", val) != val)
-      tdetector.switchTailPruning ();
-    if (tdetector.tailPruning() != 0) tdetector.switchTailPruning ();
-  }
-  else
-  {
-    if (ild->GetPropertyAsBool ("CTrack", "TailCompactnessTest", val) != val)
-      tdetector.switchTailPruning ();
-  }
+  tdetector.model()->setTailMinSize (ild->GetPropertyAsInt (
+      "CTrack", "TailMinLength", tdetector.model()->tailMinSize ()));
+  // Next command deprecated
   tdetector.model()->setTailMinSize (ild->GetPropertyAsInt (
       "CTrack", "MinTailLength", tdetector.model()->tailMinSize ()));
 }

@@ -498,11 +498,9 @@ bool CarriageTrack::prune (int tailMinSize)
 {
   int nb = (int) (rights.size ()) - 1;
   while (nb >= 0 && rights[nb]->pruneDoubtfulTail (tailMinSize)) nb --;
-  bool right_pruned = (nb == -1);
-
   nb = (int) (lefts.size ()) - 1;
   while (nb >= 0 && lefts[nb]->pruneDoubtfulTail (tailMinSize)) nb --;
-  return (right_pruned && nb == -1);
+  return (spread () < tailMinSize);
 }
 
 

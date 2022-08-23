@@ -31,13 +31,8 @@ const int Plateau::PLATEAU_RES_NONE = 0;
 const int Plateau::PLATEAU_RES_OK = 1;
 const int Plateau::PLATEAU_RES_NOT_ENOUGH_INPUT_PTS = -1;
 const int Plateau::PLATEAU_RES_NOT_ENOUGH_ALT_PTS = -2;
-const int Plateau::PLATEAU_RES_NOT_MEANINGFUL = -3;
-const int Plateau::PLATEAU_RES_TOO_NARROW = -4;
-const int Plateau::PLATEAU_RES_EMPTY_SCAN = -5;
-const int Plateau::PLATEAU_RES_NOT_ENOUGH_CNX_PTS = -6;
-const int Plateau::PLATEAU_RES_NO_BOUND_DETECTED = -7;
-const int Plateau::PLATEAU_RES_NO_START_POS = -8;
-const int Plateau::PLATEAU_RES_NO_END_POS = -9;
+const int Plateau::PLATEAU_RES_TOO_NARROW = -3;
+const int Plateau::PLATEAU_RES_NOT_ENOUGH_CNX_PTS = -4;
 const int Plateau::PLATEAU_RES_NO_BOUND_POS = -10;
 const int Plateau::PLATEAU_RES_OPTIMAL_HEIGHT_UNDER_USED = -11;
 const int Plateau::PLATEAU_RES_TOO_LARGE_NARROWING = -12;
@@ -69,7 +64,6 @@ Plateau::Plateau (PlateauModel *pmod)
   s_ok = false;
   e_ok = false;
   w_ok = false;
-  nb_out = 0;
   slope_est = 0.0f;
   dev_est = 0.0f;
   width_change = 0;
@@ -177,12 +171,17 @@ bool Plateau::detect (const std::vector<Pt2f> &ptsh, bool all, float exh)
 
   // Updates plateau structure with found values
   s_num = imin;
-  e_num = jmax - 1;
-  s_int = ptsh[imin].x ();
-  e_int = ptsh[jmax - 1].x ();
+  e_num = (jmax < 0 ? 0 : jmax - 1);
+  s_int = ptsh[s_num].x ();
+  e_int = ptsh[e_num].x ();
   h_min = meanh;
 
   // Checks sequence size and length
+  if (ptsh[e_num].x () - ptsh[s_num].x () < pmod->minLength ()) 
+  {
+    status = PLATEAU_RES_TOO_NARROW;
+    return false;
+  }
   if (jmax - imin < pmod->minCountOfPoints ())
   {
     status = PLATEAU_RES_NOT_ENOUGH_CNX_PTS;
@@ -191,11 +190,6 @@ bool Plateau::detect (const std::vector<Pt2f> &ptsh, bool all, float exh)
   if (jmax - imin < pmod->optHeightMinUse () * nbhmax)
   {
     status = PLATEAU_RES_OPTIMAL_HEIGHT_UNDER_USED;
-    return false;
-  }
-  if (ptsh[e_num].x () - ptsh[s_num].x () < pmod->minLength ()) 
-  {
-    status = PLATEAU_RES_TOO_NARROW;
     return false;
   }
 
@@ -248,15 +242,30 @@ bool Plateau::detect (const std::vector<Pt2f> &ptsh, bool all, float exh)
 }
 
 
-bool Plateau::track (const std::vector<Pt2f> &ptsh, bool first_p,
+bool Plateau::track (const std::vector<Pt2f> &ptsh,
                      float lstart, float lend, float lheight,
                      float cshift, int confdist)
 {
-  if (first_p)
+  if (confdist == 0) // initial detection only
   {
     // Initializes plateau position
-    s_est = lstart;
-    e_est = lend;
+    s_ref = lstart;
+    e_ref = lend;
+    s_est = s_ref;
+    e_est = e_ref;
+    if (ptsh.empty ())
+    {
+      s_int = s_ref;
+      e_int = e_ref;
+      s_ext = s_ref - pmod->maxLength ();
+      e_ext = e_ref + pmod->maxLength ();
+      h_min = 0.0f;
+      h_ref = 0.0f;
+      status = PLATEAU_RES_NOT_ENOUGH_INPUT_PTS;
+      return false;
+    }
+    h_ref = (ptsh.front().y () + ptsh.back().y ()) / 2
+            - pmod->thicknessTolerance () / 2;
   }
   else
   {
@@ -276,10 +285,11 @@ bool Plateau::track (const std::vector<Pt2f> &ptsh, bool first_p,
     status = PLATEAU_RES_NOT_ENOUGH_INPUT_PTS;
     return false;
   }
+  int lpt = (int) (ptsh.size ()) - 1;
 
   // Translates to int and finds start point
   float lcenter = (lstart + lend) / 2 + cshift;
-  int icenter = (int) (lcenter * 1000 + 0.5f);
+  int icenter = (int) (lcenter * 1000 + (lcenter < 0 ? - 0.5f : 0.5f));
   int ifirst = 0;
   int i = 0;
   bool searching = true;
@@ -288,7 +298,7 @@ bool Plateau::track (const std::vector<Pt2f> &ptsh, bool first_p,
   locheight = it->y ();
   while (it != ptsh.end ())
   {
-    int x = (int) (it->x () * 1000 + 0.5f);
+    int x = (int) (it->x () * 1000 + (it->x () < 0 ? - 0.5f : 0.5f));
     if (searching && x > icenter)
     {
       searching = false;
@@ -296,18 +306,27 @@ bool Plateau::track (const std::vector<Pt2f> &ptsh, bool first_p,
       else if (x - icenter > icenter - ptsi.back().x ()) ifirst = i - 1;
       else ifirst = i;
     }
-    ptsi.push_back (Pt2i (x, (int) ((it->y () - locheight) * 1000 + 0.5f)));
+    ptsi.push_back (Pt2i (x, (int) ((it->y () - locheight) * 1000
+                                    + (it->y () < locheight ? - 0.5f : 0.5f))));
     i ++;
     it ++;
   }
   int myend = i;
 
   // Checks the reference height
-  if ((! first_p)
+  if ((confdist != 0)
       && (ptsh[ifirst].y () < h_ref - confdist * pmod->slopeTolerance ()
           || ptsh[ifirst].y () > h_ref + pmod->thicknessTolerance ()
                                  + confdist * pmod->slopeTolerance ()))
   {
+    s_int = ptsh[ifirst].x ();
+    e_int = ptsh[ifirst].x ();
+    s_ext = (ifirst == 0 ? s_int - pmod->maxLength ()
+                         : ptsh[ifirst - 1].x ());
+    e_ext = (ifirst == lpt ? e_int + pmod->maxLength ()
+                           : ptsh[ifirst + 1].x ());
+    s_est = (s_int + s_ext) / 2;
+    e_est = (e_int + e_ext) / 2;
     status = PLATEAU_RES_OUT_OF_HEIGHT_REF;
     return false;
   }
@@ -373,14 +392,26 @@ bool Plateau::track (const std::vector<Pt2f> &ptsh, bool first_p,
   e_num -= lstop + 1;
 
   // Tests
-  if (ptsh[e_num].x () - ptsh[s_num].x () < pmod->minLength ())
+  s_ext = (s_num == 0 ? ptsh[0].x () - pmod->maxLength ()
+                      : ptsh[s_num - 1].x ());
+  e_ext = (e_num == lpt ? ptsh[lpt].x () + pmod->maxLength ()
+                        : ptsh[e_num + 1].x ());
+  if (e_ext - s_ext < pmod->minLength ())
   {
+    s_int = ptsh[s_num].x ();
+    e_int = ptsh[e_num].x ();
+    s_est = (s_int + s_ext) / 2;
+    e_est = (e_int + e_ext) / 2;
     status = PLATEAU_RES_TOO_NARROW;
     delete bsp;
     return false;
   }
   if (1 + e_num - s_num < pmod->minCountOfPoints ())
   {
+    s_int = ptsh[s_num].x ();
+    e_int = ptsh[e_num].x ();
+    s_est = (s_int + s_ext) / 2;
+    e_est = (e_int + e_ext) / 2;
     status = PLATEAU_RES_NOT_ENOUGH_ALT_PTS;
     delete bsp;
     return false;
@@ -429,6 +460,14 @@ bool Plateau::track (const std::vector<Pt2f> &ptsh, bool first_p,
     if (dssvx * pmod->bsMaxTilt () < dssvy * 100)
     {
       status = PLATEAU_RES_TOO_LARGE_BS_TILT;
+      s_int = ptsh[s_num].x ();
+      e_int = ptsh[e_num].x ();
+      s_ext = (s_num == 0 ? s_int - pmod->maxLength ()
+                          : ptsh[s_num - 1].x ());
+      e_ext = (e_num == lpt ? e_int + pmod->maxLength ()
+                            : ptsh[e_num + 1].x ());
+      s_est = (s_int + s_ext) / 2;
+      e_est = (e_int + e_ext) / 2;
       delete bsp;
       return false;
     }
@@ -440,12 +479,18 @@ bool Plateau::track (const std::vector<Pt2f> &ptsh, bool first_p,
   else
   {
     status = PLATEAU_RES_NO_BS;
+    s_int = ptsh[s_num].x ();
+    e_int = ptsh[e_num].x ();
+    s_ext = (s_num == 0 ? s_int - pmod->maxLength () : ptsh[s_num - 1].x ());
+    e_ext = (e_num == lpt ? e_int + pmod->maxLength () : ptsh[e_num + 1].x ());
+    s_est = (s_int + s_ext) / 2;
+    e_est = (e_int + e_ext) / 2;
     delete bsp;
     return false;
   }
 
   status = PLATEAU_RES_OK;
-  if (first_p) setFirstBounds (ptsh);
+  if (confdist == 0) setFirstBounds (ptsh);
   else
   {
     setBounds (ptsh);
@@ -489,6 +534,8 @@ void Plateau::setFirstBounds (const std::vector<Pt2f> &ptsh)
     e_ext = ptsh[e_num + 1].x ();
     e_ok = true;
   }
+  s_est = s_int;
+  e_est = e_int;
 }
 
 void Plateau::setBounds (const std::vector<Pt2f> &ptsh)
