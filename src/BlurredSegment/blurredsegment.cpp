@@ -110,8 +110,8 @@ int BlurredSegment::extent () const
   int l = 0;
   if (scan != NULL)
   {
-    l = scan->pavingIndex (plist->backPoint ())
-        + scan->pavingIndex (plist->frontPoint ());
+    l = scan->sideShift (plist->backPoint ())
+        + scan->sideShift (plist->frontPoint ());
   }
   else
   {
@@ -120,8 +120,8 @@ int BlurredSegment::extent () const
     Pt2i c ((pr.x () + pl.x ()) / 2, (pr.y () + pl.y ()) / 2);
     Pt2i d (c.x () + pl.y () - pr.y (), c.y () + pr.x () - pl.x ());
     DigitalStraightLine line (c, d, DigitalStraightLine::DSL_NAIVE);
-    l = line.pavingIndex (plist->backPoint ())
-        + line.pavingIndex (plist->frontPoint ());
+    l = line.sideShift (plist->backPoint ())
+        + line.sideShift (plist->frontPoint ());
   }
   return (l < 0 ? 1 - l : 1 + l);
 }

@@ -78,6 +78,17 @@ public:
   ~Plateau ();
 
   /**
+   * \brief Sets the input scan center shift.
+   * @param ct_shift Center shift value (in pixels).
+   */
+  inline void setScanShift (int ct_shift) { scan_shift = ct_shift; }
+
+  /**
+   * \brief Returns the input scan center shift.
+   */
+  inline int scanShift () const { return scan_shift; }
+
+  /**
    * \brief Detects the plateau in a scan.
    * @param ptsh Scan points sorted by increasing distance to scan start bound.
    * @param all Indicates whether all heights should be processed.
@@ -211,6 +222,16 @@ public:
    */
   inline float widthConfidence () const {
     return ((s_int - s_ext) + (e_ext - e_int)); }
+
+  /**
+   * \brief Returns the start point index in the profile sequence.
+   */
+  inline int startIndex () const { return s_num; }
+
+  /**
+   * \brief Returns the end point index in the profile sequence.
+   */
+  inline int endIndex () const { return e_num; }
 
   /**
    * \brief Returns the maximal start position found.
@@ -380,6 +401,8 @@ private :
   float s_ref;
   /** Reference end position (in meter). */
   float e_ref;
+  /** Input scan center shift (in pixels). Invalid for first scan. */
+  int scan_shift;
   /** Index of plateau start impact. */
   int s_num;
   /** Index of plateau end impact. */

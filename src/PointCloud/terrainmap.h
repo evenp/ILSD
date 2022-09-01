@@ -37,7 +37,6 @@
  */
 class TerrainMap
 {
-
 public:
 
   /** Hill shading type. */
@@ -64,103 +63,6 @@ public:
    * \brief Clears the ground normal map.
    */
   void clear ();
-
-  /**
-   * \brief Adds and arranges a new DTM file.
-   * Returns whether adding succeeded.
-   * The new file is localized wrt already entered files.
-   * The compete ground map should be built using create () when all files
-   *   have been loaded.
-   * @param name DTM file name (ASC format).
-   */
-  bool addDtmFile (const std::string &name);
-
-  /**
-   * \brief Declares a new normal map file to add.
-   * Returns whether the named file exists.
-   * Normal maps should be assemble using assembleMap when all loaded.
-   * @param name Normal vector map file name.
-   */
-  bool addNormalMapFile (const std::string &name);
-
-  /**
-   * \brief Creates the normal map from available DTM (ASC) files.
-   * Returns whether creation succeeded.
-   */
-  bool create ();
-
-  /**
-   * \brief Creates and assembles the normal map from declared NVM files.
-   * Returns whether creation succeeded.
-   * @param cols Count of columns of normal maps to assemble.
-   * @param rows Count of rows of normal maps to assemble.
-   * @param xmin Left-most coordinate (in millimeters).
-   * @param ymin Lower coordinate (in millimeters).
-   */
-  bool assembleMap (int cols, int rows, int64_t xmin, int64_t ymin);
-
-  /**
-   * \brief Creates and assembles a normal map file names array.
-   * Returns whether creation succeeded.
-   * @param cols Count of columns of normal maps to assemble.
-   * @param rows Count of rows of normal maps to assemble.
-   * @param xmin Left-most coordinate (in millimeters).
-   * @param ymin Lower coordinate (in millimeters).
-   * @param loading Indicates if the normal map should be created here.
-   */
-  bool arrangeFiles (int cols, int rows, int64_t xmin, int64_t ymin,
-                     bool loading);
-
-  /**
-   * \brief Loads normal map information from a normal vector map file.
-   * Returns whether information reading was successful.
-   * @param name Normal vector map file name.
-   */
-  bool loadNormalMapInfo (const std::string &name);;
-
-  /**
-   * \brief Loads normal map information from a DTM file.
-   * Returns whether information reading was successful.
-   * @param name Digital terrain model file name.
-   */
-  bool loadDtmMapInfo (const std::string &name);;
-
-  /**
-   * \brief Returns a pixel from the normal map and a lighting device.
-   * @param i Pixel absiscae.
-   * @param j Pixel ordinate.
-   */
-  int get (int i, int j) const;
-
-  /**
-   * \brief Returns a pixel from the normal map and a shading type.
-   * @param i Pixel absiscae.
-   * @param j Pixel ordinate.
-   * @param shading_type Required shading type.
-   */
-  int get (int i, int j, int shading_type) const;
-
-  /**
-   * \brief Sets the lighting device angle to given value.
-   * @param val Rotation angle in radians.
-   */
-  void setLightAngle (float val);
-
-  /**
-   * \brief Turns the lighting device of given angle.
-   * @param val Rotation angle in radians.
-   */
-  void incLightAngle (int val);
-
-  /**
-   * \brief Returns the lighting device angle.
-   */
-  inline int shadingType () const { return shading; }
-
-  /**
-   * \brief Toggles the shading type.
-   */
-  void toggleShadingType ();
 
   /**
    * \brief Returns the DTM normal map width.
@@ -198,15 +100,73 @@ public:
   inline double yMin () const { return y_min; }
 
   /**
-   * \brief Creates a normal vector map from the first tile.
-   * @param name Output file name.
+   * \brief Returns a pixel from the normal map and a lighting device.
+   * @param i Pixel absiscae.
+   * @param j Pixel ordinate.
    */
-  void saveFirstNormalMap (const std::string &name) const;
+  int get (int i, int j) const;
+
+  /**
+   * \brief Returns a pixel from the normal map and a shading type.
+   * @param i Pixel absiscae.
+   * @param j Pixel ordinate.
+   * @param shading_type Required shading type.
+   */
+  int get (int i, int j, int shading_type) const;
+
+  /**
+   * \brief Returns the lighting device angle.
+   */
+  inline int shadingType () const { return shading; }
+
+  /**
+   * \brief Toggles the shading type.
+   */
+  void toggleShadingType ();
 
   /**
    * \brief Returns the lighting device angle.
    */
   inline float lightAngle () const { return light_angle; }
+
+  /**
+   * \brief Turns the lighting device of given angle.
+   * @param val Rotation angle in radians.
+   */
+  void incLightAngle (int val);
+
+  /**
+   * \brief Sets the lighting device angle to given value.
+   * @param val Rotation angle in radians.
+   */
+  void setLightAngle (float val);
+
+  /**
+   * \brief Declares a new normal map file to add.
+   * Returns whether the named file exists.
+   * Normal maps should be assemble using assembleMap when all loaded.
+   * @param name Normal vector map file name.
+   */
+  bool addNormalMapFile (const std::string &name);
+
+  /**
+   * \brief Creates and assembles the normal map from NVM files.
+   * Returns whether creation succeeded.
+   * @param cols Count of columns of normal maps to assemble.
+   * @param rows Count of rows of normal maps to assemble.
+   * @param xmin Left-most coordinate (in millimeters).
+   * @param ymin Lower coordinate (in millimeters).
+   * @param padding Pad loading mode (vector map later loaded pad by pad).
+   */
+  bool assembleMap (int cols, int rows, int64_t xmin, int64_t ymin,
+                    bool padding = false);
+
+  /**
+   * \brief Loads normal map information from a normal vector map file.
+   * Returns whether information reading was successful.
+   * @param name Normal vector map file name.
+   */
+  bool loadNormalMapInfo (const std::string &name);;
 
   /**
    * \brief Returns the assigned pad size (in tile columns).
@@ -259,9 +219,33 @@ public:
   void clearMap (unsigned char *submap, int pw, int w, int h);
 
   /**
-   * \brief Prints the tile arrangement.
+   * \brief Creates a normal vector map from the first tile.
+   * @param name Output file name.
    */
-  void checkArrangement ();
+  void saveFirstNormalMap (const std::string &name) const;
+
+  /**
+   * \brief Adds and arranges a new DTM file.
+   * Returns whether adding succeeded.
+   * The new file is localized wrt already entered files.
+   * The compete ground map should be built using create () when all files
+   *   have been loaded.
+   * @param name DTM file name (ASC format).
+   */
+  bool addDtmFile (const std::string &name);
+
+  /**
+   * \brief Creates the normal map from available DTM (ASC) files.
+   * Returns whether creation succeeded.
+   */
+  bool create ();
+
+  /**
+   * \brief Loads normal map information from a DTM file.
+   * Returns whether information reading was successful.
+   * @param name Digital terrain model file name.
+   */
+  bool loadDtmMapInfo (const std::string &name);;
 
   /**
    * \brief Creates a new DTM tile from loaded tiles.
@@ -273,6 +257,22 @@ public:
    */
   void saveSubMap (int imin, int jmin, int imax, int jmax) const;
 
+  /**
+   * \brief Prints the tile arrangement.
+   */
+  void checkArrangement ();
+
+  /**
+   * \brief Edits the contents of loaded terrain map.
+   */
+  // void trace ();
+
+  /**
+   * \brief Edits the header of a normal vector map file.
+   * @param name Name of the nvm file.
+   */
+  // void traceNvmFileInfo (const std::string &name);
+
 
 private:
 
@@ -281,39 +281,11 @@ private:
   /** Lighting angle increment. */
   static const float LIGHT_ANGLE_INCREMENT;
 
-  /** DTM normal map width. */
-  int iwidth;
-  /** DTM normal map height. */
-  int iheight;
-  /** DTM normal map. */
-  Pt3f *nmap;
+  /** Conversion ratio from millimeters to meters. */
+  static const float MM2M;
+  /** Small value for testing non zero values. */
+  static const double EPS;
 
-  /** DTM files names. */
-  std::vector<std::string> dtm_files;
-  /** Normal vector map files names. */
-  std::vector<std::string> nvm_files;
-  /** Map of arranged tile names. */
-  std::string **arr_files;
-
-  /** Paddy layout for local seed growing: size. */
-  int pad_size;
-  /** Paddy layout for local seed growing: width. */
-  int pad_w;
-  /** Paddy layout for local seed growing: height. */
-  int pad_h;
-  /** Pad reference (index of left bottom tile). */
-  int pad_ref;
-  /** Count of tile columns. */
-  int ts_cot;
-  /** Count of tile rows. */
-  int ts_rot;
-
-  /** Input files layout. */
-  std::vector<Pt2i> layout;
-  /** First tile leftmost coordinate. */
-  double fx_min;
-  /** First tile lowest coordinate. */
-  double fy_min;
 
   /** Tile width. */
   int twidth;
@@ -328,6 +300,13 @@ private:
   /** Height code for lacking data. */
   double no_data;
 
+  /** DTM normal map width. */
+  int iwidth;
+  /** DTM normal map height. */
+  int iheight;
+  /** DTM normal map. */
+  Pt3f *nmap;
+
   /** Applied shading type. */
   int shading;
   /** Lighting angle. */
@@ -339,6 +318,30 @@ private:
   /** Third light direction. */
   Pt3f light_v3;
 
+  /** Input files layout. */
+  std::vector<Pt2i> layout;
+  /** First tile leftmost coordinate. */
+  double fx_min;
+  /** First tile lowest coordinate. */
+  double fy_min;
+
+  /** Input files names. */
+  std::vector<std::string> input_files;
+  /** Map of arranged tile file names. */
+  std::string **arr_files;
+
+  /** Pad layout for local seed growing: size. */
+  int pad_size;
+  /** Pad layout for local seed growing: width. */
+  int pad_w;
+  /** Pad layout for local seed growing: height. */
+  int pad_h;
+  /** Pad reference (index of left bottom tile). */
+  int pad_ref;
+  /** Count of tile columns. */
+  int ts_cot;
+  /** Count of tile rows. */
+  int ts_rot;
 };
 
 #endif

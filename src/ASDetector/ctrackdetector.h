@@ -264,6 +264,12 @@ inline int getOuts () const { return out_count; }
 
 inline void resetOuts () { out_count = 0; }
 
+  /**
+   * \brief Labels cloud points used for a carriage track detection.
+   * @param ct Detected carriage track.
+   */
+  void labelPoints (CarriageTrack *ct);
+
 
 private :
 
@@ -440,18 +446,19 @@ private :
                        bool sok, bool eok, float trw);
 
   /**
-   * \brief Compares points by distance to scan bound.
-   * @param p1 First point.
-   * @param p2 Second point.
-   */
-  static bool compFurther (Pt2f p1, Pt2f p2);
-
-  /**
    * \brief Compares points by distance to scan bound on integer basis.
    * @param p1 First point.
    * @param p2 Second point.
    */
   static bool compIFurther (Pt2f p1, Pt2f p2);
+
+  /**
+   * \brief Compares labelled points by distance to scan bound on integer basis.
+   * The third dimension is used for the label.
+   * @param p1 First point.
+   * @param p2 Second point.
+   */
+  static bool compLFurther (Pt3f p1, Pt3f p2);
 
   /**
    * \brief Aligns input stroke on detected track points.
@@ -463,6 +470,8 @@ private :
    * \brief Tests shift computing between scans.
    */
   void testScanShiftExtraction () const;
+
+  int scanShift (float pcenter);
 
 };
 #endif

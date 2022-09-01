@@ -223,14 +223,27 @@ public:
     return (EDist (nu * nu, a * a + b * b)); }
 
   /**
-   * \brief Returns the plane paving index of given point.
-   *    Plane paving index is the index of the line containing the point
-   * when paving the Euclidean plane by the digital straight line.
-   * @param pt Given point.
+   * \brief Returns the side shift of a point wrt the line.
+   *    The side shift is obtained as the index of the line containing the
+   * point when paving the Euclidean plane by the digital straight line.
+   * @param pt Input point.
    */
-  int pavingIndex (Pt2i pt) const;
-  int rmd (Pt2i pt) const;
+  int sideShift (Pt2i pt) const;
 
+  /**
+   * \brief Returns the side shift of a point wrt the line.
+   *    The side shift is obtained as the index of the line containing the
+   * point when paving the Euclidean plane by the digital straight line.
+   * Computation relies on long integers to prevent integer capacity overflow.
+   * @param pt Input point.
+   */
+  int sideShiftSafe (Pt2i pt) const;
+
+  /**
+   * \brief Returns the "signed" distance of a point to the line.
+   * @param pt Input point.
+   */
+  int rmd (Pt2i pt) const;
 
 
 protected:

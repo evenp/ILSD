@@ -29,9 +29,6 @@
 #include "asmath.h"
 #include "terrainmap.h"
 
-#define EPS 0.001f
-#define MM2M 0.001f
-
 const int TerrainMap::SHADE_HILL = 0;
 const int TerrainMap::SHADE_SLOPE = 1;
 const int TerrainMap::DEFAULT_PAD_SIZE = 3;
@@ -39,6 +36,9 @@ const int TerrainMap::DEFAULT_PAD_SIZE = 3;
 const float TerrainMap::RELIEF_AMPLI = 5.0f;
 const float TerrainMap::LIGHT_ANGLE_INCREMENT = 0.03f;
 const std::string TerrainMap::NVM_SUFFIX = std::string (".nvm");
+
+const float TerrainMap::MM2M = 0.001f;
+const double TerrainMap::EPS = 0.001;
 
 
 TerrainMap::TerrainMap ()
@@ -87,378 +87,7 @@ void TerrainMap::clear ()
   if (nmap != NULL) delete [] nmap;
   nmap = NULL;
   layout.clear ();
-  dtm_files.clear ();
-  nvm_files.clear ();
-}
-
-
-bool TerrainMap::addDtmFile (const std::string &name)
-{
-  std::ifstream dtmf (name.c_str (), std::ios::in);
-  if (! dtmf)
-  {
-    std::cout << "File " << name << " can't be opened" << std::endl;
-    return false;
-  }
-  char val[20];
-  int width = 0, height = 0;
-  double xllc = 0., yllc = 0., nodata = 0.;
-  float csize = 0.0f;
-
-  dtmf >> val;
-  dtmf >> width;
-  dtmf >> val;
-  dtmf >> height;
-  dtmf >> val;
-  dtmf >> xllc;
-  xllc = (double) ((int) xllc); // to remove the shift found in asc files ...
-  dtmf >> val;
-  dtmf >> yllc;
-  yllc = (double) ((int) yllc);
-  dtmf >> val;
-  dtmf >> csize;
-
-  if (iwidth == 0)
-  {
-    twidth = width;
-    theight = height;
-    iwidth = width;
-    iheight = height;
-    x_min = xllc;
-    y_min = yllc;
-    fx_min = xllc;
-    fy_min = yllc;
-    cell_size = csize;
-    no_data = nodata;
-    layout.push_back (Pt2i (0, 0));
-  }
-  else
-  {
-    if (width != twidth)
-    {
-      std::cout << "File " << name << " inconsistent width" << std::endl;
-      return false;
-    }
-    if (height != theight)
-    {
-      std::cout << "File " << name << " inconsistent height" << std::endl;
-      return false;
-    }
-    if (csize != cell_size)
-    {
-      std::cout << "File " << name << " inconsistent cell size" << std::endl;
-      return false;
-    }
-
-    double shift = ((xllc - x_min) / csize) / width;
-    int xshift = (int) (shift + (shift < 0 ? - 0.5 : 0.5));
-    double err = xllc - (x_min + xshift * csize * width);
-    if (err < - EPS || err > EPS)
-    {
-      std::cout << "File " << name << " : xllc irregular" << std::endl;
-      return false;
-    }
-    shift = ((yllc - y_min) / csize) / height;
-    int yshift = (int) (shift + (shift < 0 ? - 0.5 : 0.5));
-    err = yllc - (y_min + yshift * csize * height);
-    if (err < - EPS || err > EPS)
-    {
-      std::cout << "File " << name << " : yllc irregular" << std::endl;
-      return false;
-    }
-    if (xshift < 0 || yshift < 0)
-    {
-      std::vector<Pt2i>::iterator it = layout.begin ();
-      while (it != layout.end ())
-      {
-        if (xshift < 0) it->set (it->x () - xshift, it->y ());
-        if (yshift < 0) it->set (it->x (), it->y () - yshift);
-        it ++;
-      }
-      if (xshift < 0)
-      {
-        iwidth -= xshift * width;
-        xshift = 0;
-        x_min = xllc;
-      }
-      if (yshift < 0)
-      {
-        iheight -= yshift * height;
-        yshift = 0;
-        y_min = yllc;
-      }
-    }
-    layout.push_back (Pt2i (xshift, yshift));
-    if (iwidth / width <= xshift) iwidth = (xshift + 1) * width;
-    if (iheight / height <= yshift) iheight = (yshift + 1) * height;
-  }
-
-  dtm_files.push_back (name);
-  return true;
-}
-
-
-bool TerrainMap::addNormalMapFile (const std::string &name)
-{
-  std::ifstream dtmf (name, std::ios::in);
-  if (! dtmf) return false;
-  dtmf.close ();
-  nvm_files.push_back (name);
-  return true;
-}
-
-
-bool TerrainMap::create ()
-{
-  double *hval = new double[iwidth * iheight];
-  for (int i = 0; i < iwidth * iheight; i++) hval[i] = no_data;
-
-  std::vector<Pt2i>::iterator it = layout.begin ();
-  std::vector<std::string>::iterator itn = dtm_files.begin ();
-  while (it != layout.end ())
-  {
-
-    int dx = it->x () * twidth;
-    int dy = (iheight / theight - 1 - it->y ()) * theight;
-    std::cout << "Opening " << *itn << std::endl;
-    std::ifstream dtmf (itn->c_str (), std::ios::in);
-    if (! dtmf) return false;
-    char val[15];
-    double hv = 0.0, nodata = 0.0;
-    for (int i = 0; i < 11; i++) dtmf >> val;
-    dtmf >> nodata;
-
-    for (int j = 0; j < theight; j++)
-      for (int i = 0; i < twidth; i++)
-      {
-        dtmf >> hv;
-        hval[(dy + j) * iwidth + dx + i] = (hv == nodata ? no_data : hv);
-      }
-    dtmf.close ();
-    it ++;
-    itn ++;
-  }
-
-  if (nmap != NULL) delete [] nmap;
-  nmap = new Pt3f[iwidth * iheight];
-  Pt3f *nval = nmap;
-  double dhx, dhy;
-  for (int j = 0; j < iheight; j++)
-  {
-    for (int i = 0; i < iwidth; i++)
-    {
-      if (j == iheight - 1)
-        dhy = (hval[j * iwidth + i] - hval[(j-1) * iwidth + i])
-              * 2 * RELIEF_AMPLI;
-      else if (j == 0)
-        dhy = (hval[(j+1) * iwidth + i] - hval[j * iwidth + i])
-              * 2 * RELIEF_AMPLI;
-      else dhy = (hval[(j+1) * iwidth + i] - hval[(j-1) * iwidth + i])
-                 * RELIEF_AMPLI;
-      if (i == iwidth - 1)
-        dhx = (hval[j * iwidth + i] - hval[j * iwidth + i-1])
-              * 2 * RELIEF_AMPLI;
-      else if (i == 0)
-        dhx = (hval[j * iwidth + i+1] - hval[j * iwidth + i])
-              * 2 * RELIEF_AMPLI;
-      else dhx = (hval[j * iwidth + i+1] - hval[j * iwidth + i-1])
-                 * RELIEF_AMPLI;
-
-      nval->set (- (float) dhx, - (float) dhy, 1.0f);
-      nval->normalize ();
-      nval++;
-    }
-  }
-  delete [] hval;
-    
-  return true;
-}
-
-
-bool TerrainMap::assembleMap (int cols, int rows, int64_t xmin, int64_t ymin)
-{
-  int locw = 0, loch = 0, loci = 0, locj = 0;
-  float wmap = 0.0f, hmap = 0.0f, locs = 0.0f, locxmin = 0.0f, locymin = 0.0f;
-  twidth = 0;
-  theight = 0;
-  x_min = ((double) xmin) * MM2M;
-  y_min = ((double) ymin) * MM2M;
-  std::vector<std::string>::iterator it = nvm_files.begin ();
-  while (it != nvm_files.end ())
-  {
-    std::ifstream nvmf (it->c_str (), std::ios::in | std::ifstream::binary);
-    if (! nvmf) std::cout << "File " << *it << " can't be opened" << std::endl;
-    else
-    {
-      nvmf.read ((char *) (&locw), sizeof (int));
-      nvmf.read ((char *) (&loch), sizeof (int));
-      nvmf.read ((char *) (&locs), sizeof (float));
-      nvmf.read ((char *) (&locxmin), sizeof (float));
-      nvmf.read ((char *) (&locymin), sizeof (float));
-      if (twidth != 0)
-      {
-        double dx = locxmin - x_min;
-        if (dx < 0.0) dx = - dx;
-        int dix = (int) (dx + 0.5);
-        double dy = locymin - y_min;
-        if (dy < 0.0) dy = - dy;
-        int diy = (int) (dy + 0.5);
-        if (locw != twidth || loch != theight || locs != cell_size
-            || dix % (int) wmap != 0 || diy % (int) hmap != 0)
-        {
-          std::cout << "Tile " << *it << " cannot be assembled" << std::endl;
-          nvmf.close ();
-          return false;
-        }
-      }
-      else
-      {
-        twidth = locw;
-        theight = loch;
-        cell_size = locs;
-        iwidth = cols * twidth;
-        iheight = rows * theight;
-        if (nmap != NULL) delete [] nmap;
-        nmap = new Pt3f[iwidth * iheight];
-      }
-      wmap = twidth * cell_size;
-      hmap = theight * cell_size;
-      loci = (int) ((locxmin - x_min + wmap / 2) / wmap);
-      locj = (int) ((locymin - y_min + hmap / 2) / hmap);
-      Pt3f *line = nmap + iwidth * (iheight - 1);
-      line -= locj * theight * iwidth;
-      line += loci * twidth;
-      for (int j = 0; j < theight; j++)
-      {
-        nvmf.read ((char *) line, twidth * sizeof (Pt3f));
-        line -= iwidth;
-      }
-      nvmf.close ();
-    }
-    it ++;
-  }
-  return true;
-}
-
-
-bool TerrainMap::arrangeFiles (int cols, int rows, int64_t xmin, int64_t ymin,
-                                bool loading)
-{
-  int locw = 0, loch = 0, loci = 0, locj = 0;
-  float wmap = 0.0f, hmap = 0.0f, locs = 0.0f, locxmin = 0.0f, locymin = 0.0f;
-  ts_cot = cols;
-  ts_rot = rows;
-  twidth = 0;
-  theight = 0;
-  x_min = (double) (xmin) * MM2M;
-  y_min = (double) (ymin) * MM2M;
-  arr_files = new std::string *[cols * rows];
-  for (int i = 0; i < cols * rows; i++) arr_files[i] = NULL;
-  std::vector<std::string>::iterator it = nvm_files.begin ();
-  while (it != nvm_files.end ())
-  {
-    std::ifstream nvmf (it->c_str (), std::ios::in | std::ifstream::binary);
-    if (! nvmf) std::cout << "File " << *it << " can't be opened" << std::endl;
-    else
-    {
-      nvmf.read ((char *) (&locw), sizeof (int));
-      nvmf.read ((char *) (&loch), sizeof (int));
-      nvmf.read ((char *) (&locs), sizeof (float));
-      nvmf.read ((char *) (&locxmin), sizeof (float));
-      nvmf.read ((char *) (&locymin), sizeof (float));
-      nvmf.close ();
-      if (twidth != 0)
-      {
-        if (locw != twidth)
-        {
-          std::cout << "File " << *it << " inconsistent width" << std::endl;
-          return false;
-        }
-        if (loch != theight)
-        {
-          std::cout << "File " << *it << " inconsistent height" << std::endl;
-          return false;
-        }
-        if (locs != cell_size)
-        {
-          std::cout << "File " << *it << " inconsistent cell size" << std::endl;
-          return false;
-        }
-      }
-      else
-      {
-        twidth = locw;
-        theight = loch;
-        cell_size = locs;
-        iwidth = cols * twidth;
-        iheight = rows * theight;
-        if (loading)
-        {
-          if (nmap != NULL) delete [] nmap;
-          nmap = new Pt3f[iwidth * iheight];
-        }
-      }
-      wmap = twidth * cell_size;
-      hmap = theight * cell_size;
-      loci = (int) ((locxmin - x_min + wmap / 2) / wmap);
-      locj = (int) ((locymin - y_min + hmap / 2) / hmap);
-      arr_files[locj * cols + loci] = &(*it);
-    }
-    it ++;
-  }
-  return true;
-}
-
-
-bool TerrainMap::loadDtmMapInfo (const std::string &name)
-{
-  std::ifstream dtmf (name.c_str (), std::ios::in);
-  if (! dtmf)
-  {
-    std::cout << "File " << name << " can't be opened" << std::endl;
-    return false;
-  }
-  char val[20];
-  double xllc = 0., yllc = 0.;
-  dtmf >> val;
-  dtmf >> twidth;
-  dtmf >> val;
-  dtmf >> theight;
-  dtmf >> val;
-  dtmf >> xllc;
-  dtmf >> val;
-  dtmf >> yllc;
-  dtmf >> val;
-  dtmf >> cell_size;
-  dtmf.close ();
-  x_min = (double) ((int) xllc); // to remove the shift found in asc files ...
-  y_min = (double) ((int) yllc);
-  iwidth = twidth;
-  iheight = theight;
-  return true;
-}
-
-
-bool TerrainMap::loadNormalMapInfo (const std::string &name)
-{
-  std::ifstream nvmf (name.c_str (), std::ios::in | std::ifstream::binary);
-  if (! nvmf)
-  {
-    std::cout << "File " << name << " can't be opened" << std::endl;
-    return false;
-  }
-  float x, y;
-  nvmf.read ((char *) (&twidth), sizeof (int));
-  nvmf.read ((char *) (&theight), sizeof (int));
-  nvmf.read ((char *) (&cell_size), sizeof (float));
-  nvmf.read ((char *) (&x), sizeof (float));
-  nvmf.read ((char *) (&y), sizeof (float));
-  nvmf.close ();
-  x_min = (double) x;
-  y_min = (double) y;
-  iwidth = twidth;
-  iheight = theight;
-  return true;
+  input_files.clear ();
 }
 
 
@@ -504,30 +133,9 @@ int TerrainMap::get (int i, int j, int shading_type) const
 }
 
 
-void TerrainMap::saveFirstNormalMap (const std::string &name) const
+void TerrainMap::toggleShadingType ()
 {
-  std::ofstream nvmf (name.c_str (), std::ios::out | std::ofstream::binary);
-  if (! nvmf) std::cout << "File " << name << " can't be created" << std::endl;
-  else
-  {
-    nvmf.write ((char *) (&twidth), sizeof (int));
-    nvmf.write ((char *) (&theight), sizeof (int));
-    nvmf.write ((char *) (&cell_size), sizeof (float));
-    float fxm = (float) fx_min;
-    nvmf.write ((char *) (&fxm), sizeof (float));
-    float fym = (float) fy_min;
-    nvmf.write ((char *) (&fym), sizeof (float));
-    Pt2i txy = layout.front ();
-    Pt3f *line = nmap + iwidth * (iheight - 1);
-    line -= txy.y () * theight * iwidth;
-    line += txy.x () * twidth;
-    for (int j = 0; j < theight; j++)
-    {
-      nvmf.write ((char *) line, twidth * sizeof (Pt3f));
-      line -= iwidth;
-    }
-    nvmf.close ();
-  }
+  if (++shading > SHADE_SLOPE) shading = SHADE_HILL;
 }
 
 
@@ -567,9 +175,146 @@ void TerrainMap::setLightAngle (float val)
 }
 
 
-void TerrainMap::toggleShadingType ()
+bool TerrainMap::addNormalMapFile (const std::string &name)
 {
-  if (++shading > SHADE_SLOPE) shading = SHADE_HILL;
+  std::ifstream dtmf (name, std::ios::in);
+  if (! dtmf.is_open ()) return false;
+  dtmf.close ();
+  input_files.push_back (name);
+  return true;
+}
+
+
+bool TerrainMap::assembleMap (int cols, int rows, int64_t xmin, int64_t ymin,
+                              bool padding)
+{
+  int locw = 0, loch = 0, loci = 0, locj = 0;
+  float wmap = 0.0f, hmap = 0.0f, locs = 0.0f, locxmin = 0.0f, locymin = 0.0f;
+  if (padding)
+  {
+    ts_cot = cols;
+    ts_rot = rows;
+  }
+  twidth = 0;
+  theight = 0;
+  x_min = (double) (xmin) * MM2M;
+  y_min = (double) (ymin) * MM2M;
+  if (padding)
+  {
+    arr_files = new std::string *[cols * rows];
+    for (int i = 0; i < cols * rows; i++) arr_files[i] = NULL;
+  }
+  std::vector<std::string>::iterator it = input_files.begin ();
+  while (it != input_files.end ())
+  {
+    std::ifstream nvmf (it->c_str (), std::ios::in | std::ifstream::binary);
+    if (! nvmf.is_open ())
+      std::cout << "File " << *it << " can't be opened" << std::endl;
+    else
+    {
+      nvmf.read ((char *) (&locw), sizeof (int));
+      nvmf.read ((char *) (&loch), sizeof (int));
+      nvmf.read ((char *) (&locs), sizeof (float));
+      nvmf.read ((char *) (&locxmin), sizeof (float));
+      nvmf.read ((char *) (&locymin), sizeof (float));
+      if (twidth != 0)
+      {
+        bool ok = true;
+        if (locw != twidth)
+        {
+          std::cout << *it << " : distinct width" << std::endl;
+          ok = false;
+        }
+        if (loch != theight)
+        {
+          std::cout << *it << " : distinct height" << std::endl;
+          ok = false;
+        }
+        if (locs != cell_size)
+        {
+          std::cout << *it << " : distinct cell size" << std::endl;
+          ok = false;
+        }
+        if (padding)
+        {
+          double dx = ((double) ((int) (locxmin + 0.5f))) - x_min;
+          if (dx < 0.0) dx = - dx;
+          if (((int) (dx + 0.5f)) % ((int) (wmap + 0.5f)) != 0)
+          {
+            std::cout << *it << " : X axis aperiodicity" << std::endl;
+            ok = false;
+          }
+          double dy = ((double) ((int) (locymin + 0.5f))) - y_min;
+          if (dy < 0.0) dy = - dy;
+          if (((int) (dy + 0.5f)) % ((int) (hmap + 0.5f)) != 0)
+          {
+            std::cout << *it << " : Y axis aperiodicity" << std::endl;
+            ok = false;
+          }
+        }
+        if (! ok)
+        {
+          nvmf.close ();
+          return false;
+        }
+      }
+      else
+      {
+        twidth = locw;
+        theight = loch;
+        cell_size = locs;
+        iwidth = cols * twidth;
+        iheight = rows * theight;
+        if (! padding)
+        {
+          if (nmap != NULL) delete [] nmap;
+          nmap = new Pt3f[iwidth * iheight];
+        }
+      }
+      wmap = twidth * cell_size;
+      hmap = theight * cell_size;
+      loci = (int) ((locxmin - x_min + wmap / 2) / wmap);
+      locj = (int) ((locymin - y_min + hmap / 2) / hmap);
+      if (padding) arr_files[locj * cols + loci] = &(*it);
+      else
+      {
+        Pt3f *line = nmap + iwidth * (iheight - 1);
+        line -= locj * theight * iwidth;
+        line += loci * twidth;
+        for (int j = 0; j < theight; j++)
+        {
+          nvmf.read ((char *) line, twidth * sizeof (Pt3f));
+          line -= iwidth;
+        }
+      }
+      nvmf.close ();
+    }
+    it ++;
+  }
+  return true;
+}
+
+
+bool TerrainMap::loadNormalMapInfo (const std::string &name)
+{
+  std::ifstream nvmf (name.c_str (), std::ios::in | std::ifstream::binary);
+  if (! nvmf.is_open ())
+  {
+    std::cout << "File " << name << " can't be opened" << std::endl;
+    return false;
+  }
+  float x, y;
+  nvmf.read ((char *) (&twidth), sizeof (int));
+  nvmf.read ((char *) (&theight), sizeof (int));
+  nvmf.read ((char *) (&cell_size), sizeof (float));
+  nvmf.read ((char *) (&x), sizeof (float));
+  nvmf.read ((char *) (&y), sizeof (float));
+  nvmf.close ();
+  x_min = (double) (x + 0.5f);
+  y_min = (double) (y + 0.5f);
+  iwidth = twidth;
+  iheight = theight;
+  return true;
 }
 
 
@@ -749,8 +494,8 @@ bool TerrainMap::loadMap (int k, unsigned char *submap)
   {
     std::ifstream nvmf (arr_files[k]->c_str (),
                         std::ios::in | std::ifstream::binary);
-    if (! nvmf) std::cout << "File " << *arr_files[k] << " can't be opened"
-                          << std::endl;
+    if (! nvmf.is_open ())
+      std::cout << "File " << *arr_files[k] << " can't be opened" << std::endl;
     nvmf.read ((char *) (&locw), sizeof (int));
     nvmf.read ((char *) (&loch), sizeof (int));
     nvmf.read ((char *) (&locs), sizeof (float));
@@ -818,22 +563,243 @@ void TerrainMap::clearMap (unsigned char *submap, int pw, int w, int h)
 }
 
 
-void TerrainMap::checkArrangement ()
+void TerrainMap::saveFirstNormalMap (const std::string &name) const
 {
-  for (int i = 0; i < (iheight / theight) * (iwidth / twidth); i++)
-    std::cout << "DTM TILE " << i << " : "
-         << (arr_files[i] == NULL ? "NULL" : *arr_files[i]) << std::endl;
+  std::ofstream nvmf (name.c_str (), std::ios::out | std::ofstream::binary);
+  if (! nvmf.is_open ())
+    std::cout << "File " << name << " can't be created" << std::endl;
+  else
+  {
+    nvmf.write ((char *) (&twidth), sizeof (int));
+    nvmf.write ((char *) (&theight), sizeof (int));
+    nvmf.write ((char *) (&cell_size), sizeof (float));
+    float fxm = (float) fx_min;
+    nvmf.write ((char *) (&fxm), sizeof (float));
+    float fym = (float) fy_min;
+    nvmf.write ((char *) (&fym), sizeof (float));
+    Pt2i txy = layout.front ();
+    Pt3f *line = nmap + iwidth * (iheight - 1);
+    line -= txy.y () * theight * iwidth;
+    line += txy.x () * twidth;
+    for (int j = 0; j < theight; j++)
+    {
+      nvmf.write ((char *) line, twidth * sizeof (Pt3f));
+      line -= iwidth;
+    }
+    nvmf.close ();
+  }
+}
+
+
+bool TerrainMap::addDtmFile (const std::string &name)
+{
+  std::ifstream dtmf (name.c_str (), std::ios::in);
+  if (! dtmf.is_open ())
+  {
+    std::cout << "File " << name << " can't be opened" << std::endl;
+    return false;
+  }
+  char val[20];
+  int width = 0, height = 0;
+  double xllc = 0., yllc = 0., nodata = 0.;
+  float csize = 0.0f;
+
+  dtmf >> val;
+  dtmf >> width;
+  dtmf >> val;
+  dtmf >> height;
+  dtmf >> val;
+  dtmf >> xllc;
+  xllc = (double) ((int) (xllc + 0.5f));
+  dtmf >> val;
+  dtmf >> yllc;
+  yllc = (double) ((int) (yllc + 0.5f));
+  dtmf >> val;
+  dtmf >> csize;
+
+  if (iwidth == 0)
+  {
+    twidth = width;
+    theight = height;
+    iwidth = width;
+    iheight = height;
+    x_min = xllc;
+    y_min = yllc;
+    fx_min = xllc;
+    fy_min = yllc;
+    cell_size = csize;
+    no_data = nodata;
+    layout.push_back (Pt2i (0, 0));
+  }
+  else
+  {
+    if (width != twidth)
+    {
+      std::cout << "File " << name << " inconsistent width" << std::endl;
+      return false;
+    }
+    if (height != theight)
+    {
+      std::cout << "File " << name << " inconsistent height" << std::endl;
+      return false;
+    }
+    if (csize != cell_size)
+    {
+      std::cout << "File " << name << " inconsistent cell size" << std::endl;
+      return false;
+    }
+
+    double shift = ((xllc - x_min) / csize) / width;
+    int xshift = (int) (shift + (shift < 0 ? - 0.5 : 0.5));
+    double err = xllc - (x_min + xshift * csize * width);
+    if (err < - EPS || err > EPS)
+    {
+      std::cout << "File " << name << " : xllc irregular" << std::endl;
+      return false;
+    }
+    shift = ((yllc - y_min) / csize) / height;
+    int yshift = (int) (shift + (shift < 0 ? - 0.5 : 0.5));
+    err = yllc - (y_min + yshift * csize * height);
+    if (err < - EPS || err > EPS)
+    {
+      std::cout << "File " << name << " : yllc irregular" << std::endl;
+      return false;
+    }
+    if (xshift < 0 || yshift < 0)
+    {
+      std::vector<Pt2i>::iterator it = layout.begin ();
+      while (it != layout.end ())
+      {
+        if (xshift < 0) it->set (it->x () - xshift, it->y ());
+        if (yshift < 0) it->set (it->x (), it->y () - yshift);
+        it ++;
+      }
+      if (xshift < 0)
+      {
+        iwidth -= xshift * width;
+        xshift = 0;
+        x_min = xllc;
+      }
+      if (yshift < 0)
+      {
+        iheight -= yshift * height;
+        yshift = 0;
+        y_min = yllc;
+      }
+    }
+    layout.push_back (Pt2i (xshift, yshift));
+    if (iwidth / width <= xshift) iwidth = (xshift + 1) * width;
+    if (iheight / height <= yshift) iheight = (yshift + 1) * height;
+  }
+
+  input_files.push_back (name);
+  return true;
+}
+
+
+bool TerrainMap::create ()
+{
+  double *hval = new double[iwidth * iheight];
+  for (int i = 0; i < iwidth * iheight; i++) hval[i] = no_data;
+
+  std::vector<Pt2i>::iterator it = layout.begin ();
+  std::vector<std::string>::iterator itn = input_files.begin ();
+  while (it != layout.end ())
+  {
+    int dx = it->x () * twidth;
+    int dy = (iheight / theight - 1 - it->y ()) * theight;
+    std::cout << "Opening " << *itn << std::endl;
+    std::ifstream dtmf (itn->c_str (), std::ios::in);
+    if (! dtmf.is_open ()) return false;
+    char val[15];
+    double hv = 0.0, nodata = 0.0;
+    for (int i = 0; i < 11; i++) dtmf >> val;
+    dtmf >> nodata;
+
+    for (int j = 0; j < theight; j++)
+      for (int i = 0; i < twidth; i++)
+      {
+        dtmf >> hv;
+        hval[(dy + j) * iwidth + dx + i] = (hv == nodata ? no_data : hv);
+      }
+    dtmf.close ();
+    it ++;
+    itn ++;
+  }
+
+  if (nmap != NULL) delete [] nmap;
+  nmap = new Pt3f[iwidth * iheight];
+  Pt3f *nval = nmap;
+  double dhx, dhy;
+  for (int j = 0; j < iheight; j++)
+  {
+    for (int i = 0; i < iwidth; i++)
+    {
+      if (j == iheight - 1)
+        dhy = (hval[j * iwidth + i] - hval[(j-1) * iwidth + i])
+              * 2 * RELIEF_AMPLI;
+      else if (j == 0)
+        dhy = (hval[(j+1) * iwidth + i] - hval[j * iwidth + i])
+              * 2 * RELIEF_AMPLI;
+      else dhy = (hval[(j+1) * iwidth + i] - hval[(j-1) * iwidth + i])
+                 * RELIEF_AMPLI;
+      if (i == iwidth - 1)
+        dhx = (hval[j * iwidth + i] - hval[j * iwidth + i-1])
+              * 2 * RELIEF_AMPLI;
+      else if (i == 0)
+        dhx = (hval[j * iwidth + i+1] - hval[j * iwidth + i])
+              * 2 * RELIEF_AMPLI;
+      else dhx = (hval[j * iwidth + i+1] - hval[j * iwidth + i-1])
+                 * RELIEF_AMPLI;
+
+      nval->set (- (float) dhx, - (float) dhy, 1.0f);
+      nval->normalize ();
+      nval++;
+    }
+  }
+  delete [] hval;
+  return true;
+}
+
+
+bool TerrainMap::loadDtmMapInfo (const std::string &name)
+{
+  std::ifstream dtmf (name.c_str (), std::ios::in);
+  if (! dtmf.is_open ())
+  {
+    std::cout << "File " << name << " can't be opened" << std::endl;
+    return false;
+  }
+  char val[20];
+  double xllc = 0., yllc = 0.;
+  dtmf >> val;
+  dtmf >> twidth;
+  dtmf >> val;
+  dtmf >> theight;
+  dtmf >> val;
+  dtmf >> xllc;
+  dtmf >> val;
+  dtmf >> yllc;
+  dtmf >> val;
+  dtmf >> cell_size;
+  dtmf.close ();
+  x_min = (double) ((int) (xllc + 0.5f));
+  y_min = (double) ((int) (yllc + 0.5f));
+  iwidth = twidth;
+  iheight = theight;
+  return true;
 }
 
 
 void TerrainMap::saveSubMap (int imin, int jmin, int imax, int jmax) const
 {
   int nw = imax - imin, nh = jmax - jmin;
-  float xm = (float) (x_min + (double) imin * 0.5);
-  float ym = (float) (y_min + (double) jmin * 0.5);
+  float xm = (float) ((int) (x_min + (double) imin * cell_size + 0.5));
+  float ym = (float) ((int) (y_min + (double) jmin * cell_size + 0.5));
 
   std::ofstream nvmf ("nvm/newtile.nvm", std::ios::out | std::ofstream::binary);
-  if (! nvmf) std::cout << "nvm/newtile.nvm can't be created" << std::endl;
+  if (! nvmf.is_open ())
+    std::cout << "nvm/newtile.nvm can't be created" << std::endl;
   else
   {
     nvmf.write ((char *) (&nw), sizeof (int));
@@ -852,3 +818,46 @@ void TerrainMap::saveSubMap (int imin, int jmin, int imax, int jmax) const
     nvmf.close ();
   }
 }
+
+
+void TerrainMap::checkArrangement ()
+{
+  for (int i = 0; i < (iheight / theight) * (iwidth / twidth); i++)
+    std::cout << "DTM TILE " << i << " : "
+         << (arr_files[i] == NULL ? "NULL" : *arr_files[i]) << std::endl;
+}
+
+
+/*
+void TerrainMap::trace ()
+{
+  std::cout << "Iwidth = " << iwidth << ", Iheight = " << iheight << std::endl;
+  std::cout << "Twidth = " << twidth << ", Theight = " << theight << std::endl;
+  std::cout << "Xmin = " << (int64_t) (x_min * 1000 + 0.5)
+               << ", Ymin = " << (int64_t) (y_min * 1000 + 0.5) << std::endl;
+  std::cout << "Csize = " << cell_size << ", Nodata = " << no_data << std::endl;
+}
+
+
+void TerrainMap::traceNvmFileInfo (const std::string &name)
+{
+  std::cout << "Tracing " << name << std::endl;
+  std::ifstream nvmf (name.c_str (), std::ios::in | std::ifstream::binary);
+  if (! nvmf.is_open ())
+    std::cout << "File " << name << " can't be opened" << std::endl;
+  else
+  {
+    int locw, loch;
+    float locs, locxmin, locymin;
+    nvmf.read ((char *) (&locw), sizeof (int));
+    nvmf.read ((char *) (&loch), sizeof (int));
+    std::cout << "Width = " << locw << " Height = " << loch << std::endl;
+    nvmf.read ((char *) (&locs), sizeof (float));
+    std::cout << "Csize = " << locs << std::endl;
+    nvmf.read ((char *) (&locxmin), sizeof (float));
+    nvmf.read ((char *) (&locymin), sizeof (float));
+    std::cout << "Xmin = " << (int) (locxmin + 0.5f)
+              << " Ymin = " << (int) (locymin + 0.5f) << std::endl;
+  }
+}
+*/

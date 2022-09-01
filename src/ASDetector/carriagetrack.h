@@ -81,6 +81,24 @@ public:
   inline void setStatus (int val) { status = val; }
 
   /**
+   * \brief Sets the carriage track detection seed.
+   * @param p1 Seed start point.
+   * @param p2 Seed end point.
+   * @param cs DTM grid cell size.
+   */
+  void setDetectionSeed (Pt2i p1, Pt2i p2, float cs);
+
+  /**
+   * \brief Gets the seed start point.
+   */
+  inline Pt2i getSeedStart () const { return seed_p1; }
+
+  /**
+   * \brief Gets the seed end point.
+   */
+  inline Pt2i getSeedEnd () const { return seed_p2; }
+
+  /**
    * \brief Starts the carriage track with a central plateau and displayed scan.
    * @param pl Central plateau to be added.
    * @param dispix Scan used for display.
@@ -245,6 +263,12 @@ public:
   void getPosition (std::vector<Pt2i> &pts, std::vector<Pt2i> &pts2,
                     int disp, float iratio, bool smoothed);
 
+  /**
+   * \brief Returns scan shift for given side position of the center.
+   * @param pcenter Side position of the center.
+   */
+  int scanShift (float pcenter);
+
 
 private :
 
@@ -260,6 +284,15 @@ private :
   CTrackSection *curright;
   /** Current left section. */
   CTrackSection *curleft;
+
+  /** Detection seed first input point in DTM pixels. */
+  Pt2i seed_p1;
+  /** Detection seed second input point in DTM pixels. */
+  Pt2i seed_p2;
+  /** Detection seed length in DTM pixels (not to recompute it regularly). */
+  float seed_length;
+  /** DTM cell size: pixel to cloud point (meter) ratio. */
+  float cell_size;
 
 
   /**

@@ -55,6 +55,8 @@ public:
   static const std::string MID_DIR;
   /** Relative path to eco mode tile directory. */
   static const std::string ECO_DIR;
+  /** Relative path to point file directory. */
+  static const std::string XYZ_DIR;
   /** Top tile file prefix. */
   static const std::string TOP_PREFIX;
   /** Mid tile file prefix. */
@@ -63,6 +65,12 @@ public:
   static const std::string ECO_PREFIX;
   /** Point file suffix. */
   static const std::string TIL_SUFFIX;
+  /** Point label file suffix. */
+  static const std::string LAB_SUFFIX;
+  /** Point text file suffix. */
+  static const std::string XYZ_SUFFIX;
+  /** Labelled point text file suffix. */
+  static const std::string XYZL_SUFFIX;
 
 
   /**
@@ -113,14 +121,6 @@ public:
    * @params inds Vector of indexes to declare.
    */
   void setData (std::vector<Pt3i> pts, std::vector<int> inds);
-
-  /**
-   * Loads the point tile from a XYZ file.
-   * Returns whether the XYZ file was found.
-   * @params ptsfile XYZ points file name.
-   * @params subdiv Tile structure resolution: number of grouped columns.
-   */
-  bool loadXYZFile (std::string ptsfile, int subdiv);
 
   /**
    * Declares the number of points to load.
@@ -214,7 +214,7 @@ public:
   int collectSubcellPoints (std::vector<Pt3i> &pts, int i, int j) const;
 
   /**
-   * \brief Arranges provided SOL tile points in the cells and creates indices.
+   * \brief Arranges provided tile points in the cells and creates indices.
    * @param pts Count of provided points.
    * @param tin Provided tile.
    */
@@ -233,6 +233,13 @@ public:
    */
   inline Pt3i *cellStartPt (int i, int j) const {
     return (points + cells[j * cols + i]); }
+
+  /**
+   * \brief Returns the label of the first point of a tile cell.
+   * @param i Tile cell column.
+   * @param j Tile cell row.
+   */
+  inline int cellStart (int i, int j) const { return (cells[j * cols + i]); }
 
   /**
    * \brief Returns the points array.
@@ -256,18 +263,20 @@ public:
 
   /**
    * \brief Saves the tile in a file.
+   * Returns whether saving succeeded.
    * @param name Specific tile name.
    */
-  void save (std::string name) const;
+  bool save (std::string name) const;
 
   /**
    * \brief Saves the tile in a file.
+   * Returns whether saving succeeded.
    */
-  void save () const;
+  bool save () const;
 
   /**
    * \brief Loads the tile from a file.
-   * Returns false if loading failed, true otherwise.
+   * Returns whether loading succeeded.
    * @param name File name.
    * @param all Only loads header if false.
    */
@@ -275,14 +284,14 @@ public:
 
   /**
    * \brief Loads tile index and point tables.
-   * Returns false if loading failed, true otherwise.
+   * Returns whether loading succeeded.
    * @param all Only loads header if false.
    */
   bool load (bool all = true);
 
   /**
    * \brief Loads the tile data in given arrays.
-   * Returns false if loading failed, true otherwise.
+   * Returns whether loading succeeded.
    * @param ind Index array.
    * @param pts Point array.
    */
@@ -292,13 +301,6 @@ public:
    * \brief Releases the tile data in given arrays.
    */
   void releasePoints ();
-
-  /**
-   * \brief Loads the tile header from a file.
-   * Returns false if loading failed, true otherwise.
-   * @param name File name.
-   */
-  bool loadHeader (std::string name);
 
   /**
    * \brief Returns the count of points in the most populated cell.
@@ -312,12 +314,91 @@ public:
   int cellMinSize (int max) const;
 
   /**
+   * \brief Returns the count of labelled points.
+   */
+  int countOfLabelledPoints ();
+
+  /**
+   * \brief Saves the labels in a binary file.
+   * Returns whether saving succeeded.
+   * @param name File directory name.
+   */
+  bool saveLabels (std::string dir) const;
+
+  /**
+   * \brief Reads the labels in a binary file.
+   * Returns whether the file exists.
+   * @param name File directory name.
+   */
+  bool loadLabels (std::string dir);
+
+  /**
+   * \brief Activates the point labelling modality.
+   */
+  void createLabels ();
+
+  /**
+   * \brief Deactivates the point labelling modality.
+   */
+  void resetLabels ();
+
+  /**
+   * \brief Returns if a cell contains a point labelled as carriage track.
+   * @param i Tile cell X coordinate.
+   * @param j Tile cell Y coordinate.
+   */
+  bool isLabelled (int i, int j);
+
+  /**
+   * \brief Labels a point as carriage track.
+   * @param plab Index of the point in the tile.
+   */
+  void labelAsTrack (int plab);
+
+  /**
+   * \brief Resets all labels in a cell.
+   * @param i Tile cell X coordinate.
+   * @param j Tile cell Y coordinate.
+   */
+  void unlabel (int i, int j);
+
+  /**
+   * Loads the point tile from a XYZ or XYZL file.
+   * Returns whether the XYZ file was found.
+   * @params ptsfile XYZ points file name.
+   * @params subdiv Tile structure resolution: number of grouped columns.
+   * @params lab_in Point label loading modality.
+   */
+  bool loadXYZFile (std::string ptsfile, int subdiv, bool lab_in = true);
+
+  /**
+   * Saves the point tile into an XYZ or XYZL file.
+   * Returns whether saving succeeded.
+   * @params lab_out Point label saving modality.
+   */
+  bool saveXYZFile (bool lab_out = true) const;
+
+  /**
+   * Saves the point tile into an XYZ or XYZL file.
+   * Returns whether saving succeeded.
+   * @params ptsfile XYZ points file name.
+   * @params lab_out Point label saving modality.
+   */
+  bool saveXYZFile (std::string ptsfile, bool lab_out = true) const;
+
+  /**
    * \brief Checks the tile.
    */
   void check () const;
 
 
 private:
+
+  /** Rounding offset used for XYZ file loading or saving.
+   * Arbitrarily set to 5 mm to account for 10mm coordinate rounding.
+   */
+  static const int R_OFF;
+
 
   /** Count of rows. */
   int rows;
@@ -333,13 +414,22 @@ private:
   int csize;
   /** Total number of points. */
   int nb;
-  /** Point file name. */
+  /** Point labelling modality. */
+  bool labelling;
+  /** Registered point file full name. */
   std::string fname;
   /** Point array. */
   Pt3i *points;
+  /** Point label array. */
+  unsigned char *labels;
   /** Tile cell addresses in the point array. */
   int *cells;
 
+
+  /**
+   * \brief Returns the name of the tile from registered name.
+   */
+  std::string tileName () const;
 };
 
 #endif

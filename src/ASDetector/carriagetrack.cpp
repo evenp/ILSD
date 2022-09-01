@@ -86,6 +86,16 @@ void CarriageTrack::clear (bool onright)
 }
 
 
+void CarriageTrack::setDetectionSeed (Pt2i p1, Pt2i p2, float cs)
+{
+  seed_p1.set (p1);
+  seed_p2.set (p2);
+  seed_length = (float) sqrt ((p2.x () - p1.x ()) * (p2.x () - p1.x ())
+                               + (p2.y () - p1.y ()) * (p2.y () - p1.y ()));
+  cell_size = cs;
+}
+
+
 void CarriageTrack::start (Plateau *pl, const std::vector<Pt2i> &dispix,
                            bool reversed)
 {
@@ -655,3 +665,20 @@ void CarriageTrack::addPlateauBounds (
     ept.push_back ((*scan)[edraw]);
   }
 }
+
+
+int CarriageTrack::scanShift (float pcenter)
+{
+  int a = seed_p2.x () - seed_p1.x ();
+  int b = seed_p2.y () - seed_p1.y ();
+  float posx = seed_p1.x () + (a / seed_length) * pcenter / cell_size;
+  float posy = seed_p1.y () + (b / seed_length) * pcenter / cell_size;
+  if (a < 0.)
+  {
+    a = -a;
+    b = -b;
+  }
+  float valc = a * posx + b * posy;
+  return ((int) (valc < 0.0f ? valc - 0.5f : valc + 0.5f));
+}
+

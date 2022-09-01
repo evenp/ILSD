@@ -167,6 +167,6 @@ protected:
   float yp;
   /** Point Z-coordinate value. */
   float zp;
-
 };
+
 #endif

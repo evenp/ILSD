@@ -27,8 +27,7 @@
 
 #include "ipttile.h"
 #include "pt3f.h"
-
-#define MM2M 0.001f
+#include "pt2i.h"
 
 
 /** 
@@ -220,6 +219,13 @@ public:
   int cellSize (int i, int j) const;
 
   /**
+   * \brief Returns the height of the first point found at given scan.
+   * Returned height is in millimeters.
+   * @param scan Input scan.
+   */
+  int heightOfFirstPointIn (std::vector<Pt2i> &scan) const;
+
+  /**
    * \brief Pushes the points of given tile subcell in provided vector.
    *   Points are transfered in integral millimeter unit.
    *   Tiles are assumed to be organized in sorted sub-cells.
@@ -240,6 +246,21 @@ public:
    * @param j Tile subcell row.
    */
   bool collectPoints (std::vector<Pt3f> &pts, int i, int j);// const;
+
+  /**
+   * \brief Pushes points and labels of given tile subcell in provided vectors.
+   *   Points are transfered in meter unit.
+   *   Tiles are assumed to be organized in sorted sub-cells.
+   *   For each point, labels are its tile number and its label in the tile.
+   * Returns whether tile points are effectively loaded.
+   * @param pts Provided vector of points.
+   * @param tls Provided vector of tile numbers.
+   * @param lbs Provided vector of point labels.
+   * @param i Tile subcell column.
+   * @param j Tile subcell row.
+   */
+  bool collectPointsAndLabels (std::vector<Pt3f> &pts, std::vector<int> & tls,
+                               std::vector<int> &lbs, int i, int j);// const;
 
   /**
    * \brief Pushes the points of given tile subcell in provided vector.
@@ -299,6 +320,80 @@ public:
   void saveSubTile (int imin, int jmin, int imax, int jmax) const;
 
   /**
+   * \brief Labels a point as carriage track.
+   * @param tnum Index of the tile containing the point.
+   * @param plab Index of the point in the tile.
+   */
+  void labelAsTrack (int tnum, int plab);
+
+  /**
+   * \brief Resets all labels in a cell.
+   * @param i Tile cell X coordinate.
+   * @param j Tile cell Y coordinate.
+   * @param unit Subdivision ratio of inquired cells.
+   */
+  void unlabel (int i, int j, int unit);
+
+  /**
+   * \brief Returns if a cell contains a point labelled as carriage track.
+   * @param i Tile cell X coordinate.
+   * @param j Tile cell Y coordinate.
+   * @param unit Subdivision ratio of inquired cells.
+   */
+  bool isLabelled (int i, int j, int unit);
+
+  /**
+   * \brief Returns the count of labelled points.
+   */
+  int countOfLabelledPoints ();
+
+  /**
+   * \brief Returns the count of labelled pixels.
+   * @param unit Subdivision ratio of inquired cells.
+   */
+  int countOfLabelledPixels (int unit);
+
+  /**
+   * \brief Creates the array of point labels in each tile.
+   */
+  void createLabels ();
+
+  /**
+   * \brief Reads point labels in binary files.
+   * Returns whether loading succeded.
+   * @param dir Label file directory name.
+   */
+  bool loadLabels (std::string dir) const;
+
+  /**
+   * \brief Saves point labels in binary files.
+   * Returns whether saving succeded.
+   * @param dir Label file directory name.
+   */
+  bool saveLabels (std::string dir) const;
+
+  /**
+   * \brief Saves points of each tile in the set into XYZ format file.
+   * @param lab Labelled points modality (XYZL file if true).
+   */
+  void toXYZ (bool lab);
+
+  /**
+   * \brief Saves the first tile in an XYZ or XYZL file.
+   * Returns whether the saving succeeded.
+   * @param lab Point label saving modality.
+   */
+  bool saveXYZFile (bool lab) const;
+
+  /**
+   * \brief Loads the first tile from an XYZ or XYZL file.
+   * Returns whether the loading succeeded.
+   * @param sub MNT grid subdivision factor.
+   * @param lab Point label loading modality.
+   */
+  bool loadXYZFile (std::string name, int sub, bool lab);
+
+  /**
    * \brief Prints features of the set first tile.
    */
   void check ();
@@ -308,6 +403,10 @@ private:
 
   /** Default value for local tile set size. */
   static const int DEFAULT_BUF_SIZE;
+
+  /** Conversion ratio from millimeters to meters. */
+  static const float MM2M;
+
 
   /** X offset. */
   int64_t xmin;
@@ -356,7 +455,6 @@ private:
   int *buf_ind;
   /** Current step of tile set traversal. */
   int buf_step;
-
 };
 
 #endif

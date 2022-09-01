@@ -457,11 +457,19 @@ bool DigitalStraightLine::crosses (const Pt2i &p1, const Pt2i &p2) const
 }
 
 
-int DigitalStraightLine::pavingIndex (Pt2i pt) const
+int DigitalStraightLine::sideShift (Pt2i pt) const
 {
   int rmd = a * pt.x () + b * pt.y () - c;
   if (a == 0) rmd = -rmd;
   return (rmd < 0 ? (rmd + 1) / nu - 1 : rmd / nu);
+}
+
+
+int DigitalStraightLine::sideShiftSafe (Pt2i pt) const
+{
+  int64_t rmd = a * ((int64_t) pt.x ()) + b * ((int64_t) pt.y ()) - c;
+  if (a == 0) rmd = -rmd;
+  return (rmd < 0 ? (int) ((rmd + 1) / nu) - 1 : (int) (rmd / nu));
 }
 
 

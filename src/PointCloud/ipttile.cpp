@@ -26,7 +26,6 @@
 #include <fstream>
 #include "ipttile.h"
 
-#define DECAL 5      // Numerical rounding safety
 
 const int IPtTile::XYZ_UNIT = 1000; // assumed to be 1 meter
 const int IPtTile::MIN_CELL_SIZE = 100;
@@ -36,10 +35,16 @@ const int IPtTile::ECO = 10;
 const std::string IPtTile::TOP_DIR = std::string ("top/");
 const std::string IPtTile::MID_DIR = std::string ("mid/");
 const std::string IPtTile::ECO_DIR = std::string ("eco/");
+const std::string IPtTile::XYZ_DIR = std::string ("xyz/");
 const std::string IPtTile::TOP_PREFIX = std::string ("top_");
 const std::string IPtTile::MID_PREFIX = std::string ("mid_");
 const std::string IPtTile::ECO_PREFIX = std::string ("eco_");
 const std::string IPtTile::TIL_SUFFIX = std::string (".til");
+const std::string IPtTile::LAB_SUFFIX = std::string (".tpl");
+const std::string IPtTile::XYZ_SUFFIX = std::string (".xyz");
+const std::string IPtTile::XYZL_SUFFIX = std::string (".xyzl");
+
+const int IPtTile::R_OFF = 5;
 
 
 IPtTile::IPtTile (int nbrows, int nbcols)
@@ -51,9 +56,11 @@ IPtTile::IPtTile (int nbrows, int nbcols)
   zmax = 0;
   nb = 0;
   csize = 1;
+  labelling = false;
   cells = new int[rows * cols + 1];
   for (int i = 0; i < rows * cols + 1; i++) cells[i] = 0;
   points = NULL;
+  labels = NULL;
 }
 
 
@@ -67,8 +74,10 @@ IPtTile::IPtTile (std::string name)
   zmax = 0;
   nb = 0;
   csize = 1;
+  labelling = false;
   cells = NULL;
   points = NULL;
+  labels = NULL;
 }
 
 
@@ -85,14 +94,17 @@ IPtTile::IPtTile (const std::string &dir, const std::string &name, int acc)
   zmax = 0;
   nb = 0;
   csize = 1;
+  labelling = false;
   cells = NULL;
   points = NULL;
+  labels = NULL;
 }
 
 
 IPtTile::~IPtTile ()
 {
   if (points != NULL) delete [] points;
+  if (labels != NULL) delete [] labels;
   if (cells != NULL) delete [] cells;
 }
 
@@ -119,123 +131,10 @@ void IPtTile::setData (std::vector<Pt3i> pts, std::vector<int> inds)
   points = new Pt3i[nb];
   Pt3i *pt = points;
   std::vector<Pt3i>::iterator pit = pts.begin ();
-  while (pit != pts.end ())
-  {
-    pt->set (*pit);
-    pt ++;
-    pit ++;
-  }
+  while (pit != pts.end ()) (pt++)->set (*pit++);
   int *cl = cells;
   std::vector<int>::iterator iit = inds.begin ();
-  while (iit != inds.end ())
-  {
-    *cl = *iit;
-    cl ++;
-    iit ++;
-  }
-}
-
-
-bool IPtTile::loadXYZFile (std::string ptsfile, int subdiv)
-{
-  double x, y, z;
-  int ix, iy, iz;
-
-  // Opens XYZ file
-  std::cout << "loading " << ptsfile << " ..." << std::endl;
-  std::ifstream fpts (ptsfile.c_str (), std::ios::in);
-  if (! fpts) return false;
-
-  // Load XYZ file points
-  nb = 0;
-  int lrow = rows *subdiv;
-  int lcol = cols *subdiv;
-  std::vector<Pt3i> outs;
-  std::vector<Pt3i> **xyzcells = new std::vector<Pt3i>*[lrow];
-  for (int i = 0; i < lrow; i++)
-    xyzcells[i] = new std::vector<Pt3i>[lcol];
-  fpts >> x;
-  for (int i = 0; ! fpts.eof (); i++)
-  {
-    fpts >> y;
-    fpts >> z;
-    ix = (int) ((int64_t) (x * XYZ_UNIT + 0.5) - xmin);
-    iy = (int) ((int64_t) (y * XYZ_UNIT + 0.5) - ymin);
-    iz = (int) (z * XYZ_UNIT + 0.5);
-
-    int gx = (ix * subdiv) / csize;
-    int gy = (iy * subdiv) / csize;
-    if (gx < 0 || gy < 0 || gx >= lcol || gy >= lrow)
-    {
-      outs.push_back (Pt3i (ix, iy, iz));
-      std::cout << "Out pt (" << ix << ", " << iy << ", " << iz << ") -> ("
-                << gx << ", " << gy << ")" << std::endl;
-      std::cout << "Origin : " << x << ", " << y << ", " << z << ")"
-                << std::endl;
-    }
-    else
-    {
-      xyzcells[gy][gx].push_back (Pt3i (ix, iy, iz));
-      nb ++;
-      if (iz > zmax) zmax = iz;
-    }
-    fpts >> x;
-  }
-  fpts.close ();
-
-  // Displays statistics
-  std::cout << "Outliers size = " << outs.size () << std::endl;
-  int cmax = 0;
-  for (int j = 0; j < lcol; j++)
-    for (int i = 0; i < lrow; i++)
-      if ((int) xyzcells[j][i].size () > cmax)
-        cmax = (int) xyzcells[j][i].size ();
-  int cmin = cmax;
-  for (int j = 0; j < lcol; j++)
-    for (int i = 0; i < lrow; i++)
-      if ((int) xyzcells[j][i].size () < cmin)
-        cmin = (int) xyzcells[j][i].size ();
-  std::cout << "Max cell size = " << cmax << std::endl;
-  std::cout << "Min cell size = " << cmin << std::endl;
-  int nz = 0, nyny = 0;
-  for (int j = 0; j < lcol; j++)
-    for (int i = 0; i < lrow; i++)
-      if (xyzcells[j][i].empty ()) nz ++;
-      else nyny ++;
-  std::cout << nz << " cellules vides" << std::endl;
-  std::cout << nyny << " cellules occupees" << std::endl;
-
-  // Sets IPtTile structure
-  points = new Pt3i[nb];
-  Pt3i *ppoints = points;
-  int *pcells = cells;
-  *pcells++ = 0;
-  int inb = 0;
-  for (int j = 0; j < rows ; j++)
-  {
-    for (int i = 0; i < cols ; i++)
-    {
-      for (int cj = 0; cj < subdiv; cj ++)
-        for (int ci = 0; ci < subdiv; ci ++)
-        {
-          inb += (int) (xyzcells[j * subdiv + cj][i * subdiv + ci].size ());
-          const std::vector<Pt3i> *pts
-            = &(xyzcells[j * subdiv + cj][i * subdiv + ci]);
-          std::vector<Pt3i>::const_iterator it = pts->begin ();
-          while (it != pts->end ())
-          {
-            (ppoints++)->set (it->x () + DECAL, it->y () + DECAL, it->z ());
-            it ++;
-          }
-        }
-      *pcells++ = inb;
-    }
-  }
-
-  // Temporary cloud memory release
-  for (int i = 0; i < lrow; i++) delete [] xyzcells[i];
-  delete [] xyzcells;
-  return true;
+  while (iit != inds.end ()) *cl++ = *iit++;
 }
 
 
@@ -354,9 +253,10 @@ void IPtTile::setPoints (const IPtTile &tin)
 }
 
 
-void IPtTile::save (std::string name) const
+bool IPtTile::save (std::string name) const
 {
   std::ofstream fpts (name.c_str (), std::ios::out | std::ofstream::binary);
+  if (! fpts.is_open ()) return false;
   fpts.write ((char *) (&cols), sizeof (int));
   fpts.write ((char *) (&rows), sizeof (int));
   fpts.write ((char *) (&xmin), sizeof (int64_t));
@@ -367,12 +267,103 @@ void IPtTile::save (std::string name) const
   fpts.write ((char *) cells, sizeof (int) * (rows * cols + 1));
   fpts.write ((char *) points, sizeof (Pt3i) * (nb));
   fpts.close ();
+  return true;
 }
 
 
-void IPtTile::save () const
+bool IPtTile::save () const
 {
-  save (fname);
+  return (save (fname));
+}
+
+
+bool IPtTile::load (std::string name, bool all)
+{
+  std::ifstream fpts (name.c_str (), std::ios::in | std::ifstream::binary);
+  if (! fpts.is_open ()) return false;
+  fpts.read ((char *) (&cols), sizeof (int));
+  fpts.read ((char *) (&rows), sizeof (int));
+  fpts.read ((char *) (&xmin), sizeof (int64_t));
+  fpts.read ((char *) (&ymin), sizeof (int64_t));
+  fpts.read ((char *) (&zmax), sizeof (int64_t));
+  fpts.read ((char *) (&csize), sizeof (int));
+  fpts.read ((char *) (&nb), sizeof (int));
+  if (all)
+  {
+    if (cells != NULL)
+    {
+      delete cells;
+      cells = NULL;
+    }
+    cells = new int[rows * cols + 1];
+    fpts.read ((char *) cells, sizeof (int) * (rows * cols + 1));
+    if (points == NULL) points = new Pt3i[nb];
+    fpts.read ((char *) points, sizeof (Pt3i) * (nb));
+  }
+  fpts.close ();
+  return (true);
+}
+
+
+bool IPtTile::load (bool all)
+{
+  std::ifstream fpts (fname.c_str (), std::ios::in | std::ifstream::binary);
+  if (! fpts.is_open ()) return false;
+
+  fpts.read ((char *) (&cols), sizeof (int));
+  fpts.read ((char *) (&rows), sizeof (int));
+  fpts.read ((char *) (&xmin), sizeof (int64_t));
+  fpts.read ((char *) (&ymin), sizeof (int64_t));
+  fpts.read ((char *) (&zmax), sizeof (int64_t));
+  fpts.read ((char *) (&csize), sizeof (int));
+  fpts.read ((char *) (&nb), sizeof (int));
+  if (all)
+  {
+    if (cells != NULL)
+    {
+      delete cells;
+      cells = NULL;
+    }
+    cells = new int[rows * cols + 1];
+    fpts.read ((char *) cells, sizeof (int) * (rows * cols + 1));
+    if (points == NULL) points = new Pt3i[nb];
+    fpts.read ((char *) points, sizeof (Pt3i) * (nb));
+  }
+  fpts.close ();
+  return (true);
+}
+
+
+bool IPtTile::loadPoints (int *ind, Pt3i *pts)
+{
+  std::ifstream fpts (fname.c_str (), std::ios::in | std::ifstream::binary);
+  if (! fpts.is_open ())
+  {
+    std::cout << "Loading of " << fname << " failed" << std::endl;
+    return false;
+  }
+  fpts.read ((char *) (&cols), sizeof (int));
+  fpts.read ((char *) (&rows), sizeof (int));
+  fpts.read ((char *) (&xmin), sizeof (int64_t));
+  fpts.read ((char *) (&ymin), sizeof (int64_t));
+  fpts.read ((char *) (&zmax), sizeof (int64_t));
+  fpts.read ((char *) (&csize), sizeof (int));
+  fpts.read ((char *) (&nb), sizeof (int));
+  cells = ind;
+  fpts.read ((char *) cells, sizeof (int) * (rows * cols + 1));
+  points = pts;
+  fpts.read ((char *) points, sizeof (Pt3i) * (nb));
+  fpts.close ();
+  return (true);
+}
+
+
+void IPtTile::releasePoints ()
+{
+  // Just to avoid point and index arrays to be freed, when padding
+  // Do not delete the data here !!!
+  cells = NULL;
+  points = NULL;
 }
 
 
@@ -402,91 +393,380 @@ int IPtTile::cellMinSize (int max) const
 }
 
 
-bool IPtTile::load (std::string name, bool all)
+int IPtTile::countOfLabelledPoints ()
 {
-  std::ifstream fpts (name.c_str (), std::ios::in | std::ifstream::binary);
-  if (! fpts) return false;
-  fpts.read ((char *) (&cols), sizeof (int));
-  fpts.read ((char *) (&rows), sizeof (int));
-  fpts.read ((char *) (&xmin), sizeof (int64_t));
-  fpts.read ((char *) (&ymin), sizeof (int64_t));
-  fpts.read ((char *) (&zmax), sizeof (int64_t));
-  fpts.read ((char *) (&csize), sizeof (int));
-  fpts.read ((char *) (&nb), sizeof (int));
-  if (all)
-  {
-    if (cells != NULL)
-    {
-      delete cells;
-      cells = NULL;
-    }
-    cells = new int[rows * cols + 1];
-    fpts.read ((char *) cells, sizeof (int) * (rows * cols + 1));
-    if (points == NULL) points = new Pt3i[nb];
-    fpts.read ((char *) points, sizeof (Pt3i) * (nb));
-  }
-  fpts.close ();
-  return (true);
+  int nblp = 0;
+  unsigned char *lab = labels;
+  for (int i = 0; i < nb; i++) if (*lab++ == 1) nblp ++;
+  return nblp;
 }
 
 
-bool IPtTile::load (bool all)
+std::string IPtTile::tileName () const
 {
-  std::ifstream fpts (fname.c_str (), std::ios::in | std::ifstream::binary);
-  if (! fpts) return false;
-
-  fpts.read ((char *) (&cols), sizeof (int));
-  fpts.read ((char *) (&rows), sizeof (int));
-  fpts.read ((char *) (&xmin), sizeof (int64_t));
-  fpts.read ((char *) (&ymin), sizeof (int64_t));
-  fpts.read ((char *) (&zmax), sizeof (int64_t));
-  fpts.read ((char *) (&csize), sizeof (int));
-  fpts.read ((char *) (&nb), sizeof (int));
-  if (all)
+  std::string tname;
+  size_t epos = fname.find (TIL_SUFFIX);
+  if (fname.find (TOP_DIR) != std::string::npos)
   {
-    if (cells != NULL)
-    {
-      delete cells;
-      cells = NULL;
-    }
-    cells = new int[rows * cols + 1];
-    fpts.read ((char *) cells, sizeof (int) * (rows * cols + 1));
-    if (points == NULL) points = new Pt3i[nb];
-    fpts.read ((char *) points, sizeof (Pt3i) * (nb));
+    size_t spos = fname.find (TOP_PREFIX) + TOP_PREFIX.length ();
+    tname = TOP_PREFIX + fname.substr (spos, epos - spos);
   }
-  fpts.close ();
-  return (true);
+  else if (fname.find (MID_DIR) != std::string::npos)
+  {
+    size_t spos = fname.find (MID_PREFIX) + MID_PREFIX.length ();
+    tname = MID_PREFIX + fname.substr (spos, epos - spos);
+  }
+  else if (fname.find (ECO_DIR) != std::string::npos)
+  {
+    size_t spos = fname.find (ECO_PREFIX) + ECO_PREFIX.length ();
+    tname = ECO_PREFIX + fname.substr (spos, epos - spos);
+  }
+  return tname;
 }
 
 
-bool IPtTile::loadPoints (int *ind, Pt3i *pts)
+bool IPtTile::saveLabels (std::string dir) const
 {
-  std::ifstream fpts (fname.c_str (), std::ios::in | std::ifstream::binary);
-  if (! fpts)
+  if (! labelling) return false;
+  std::string labf (dir + tileName () + LAB_SUFFIX);
+  std::ofstream fpts (labf.c_str (), std::ios::out | std::ofstream::binary);
+  if (! fpts.is_open ()) return false;
+  fpts.write ((char *) labels, sizeof (unsigned char) * nb);
+  fpts.close ();
+  return true;
+}
+
+
+bool IPtTile::loadLabels (std::string dir)
+{
+  std::string labf (dir + tileName () + LAB_SUFFIX);
+  std::ifstream fpts (labf.c_str (), std::ios::in | std::ifstream::binary);
+  if (fpts.is_open ())
   {
-    std::cout << "Loading of " << fname << " failed" << std::endl;
+    if (! labelling)
+    {
+      labels = new unsigned char[nb];
+      labelling = true;
+    }
+    fpts.read ((char *) labels, sizeof (unsigned char) * nb);
+    fpts.close ();
+    return true;
+  }
+  return false;
+}
+
+
+void IPtTile::createLabels ()
+{
+  if (! labelling)
+  {
+    labels = new unsigned char[nb];
+    unsigned char *labs = labels;
+    for (int i = 0; i < nb; i++) *labs++ = (unsigned char) 0;
+  }
+  labelling = true;
+}
+
+
+void IPtTile::resetLabels ()
+{
+  if (labelling && labels != NULL)
+  {
+    delete [] labels;
+    labels = NULL;
+  }
+  labelling = false;
+}
+
+
+bool IPtTile::isLabelled (int i, int j)
+{
+  int nbpts = cells[j * cols + i + 1] - cells[j * cols + i];
+  unsigned char *lab = labels + cells[j * cols + i];
+  if (csize == MIN_CELL_SIZE)
+  {
+    for (int k = 0; k < nbpts; k++) if (*lab++ == 1) return true;
+  }
+  else
+  {
+    int cdiv = csize / MIN_CELL_SIZE;
+    int cxmin = i * csize + (i % cdiv) * MIN_CELL_SIZE;
+    int cymin = j * csize + (j % cdiv) * MIN_CELL_SIZE;
+    int cxmax = cxmin + MIN_CELL_SIZE;
+    int cymax = cymin + MIN_CELL_SIZE;
+
+    Pt3i *pt = points + cells[j * cols + i];
+    Pt3i *ptfin = pt + nbpts;
+    while (pt->y () < cymin && pt != ptfin)
+    {
+      pt ++;
+      lab ++;
+    }
+    while (pt->x () < cxmin && pt != ptfin)
+    {
+      pt ++;
+      lab ++;
+    }
+    while (pt->x () < cxmax && pt->y () < cymax && pt != ptfin)
+    {
+      if (*lab++ == 1) return true;
+      pt ++;
+    }
+  }
+  return false;
+}
+
+
+void IPtTile::labelAsTrack (int plab)
+{
+  labels[plab] = 1;
+}
+
+
+void IPtTile::unlabel (int i, int j)
+{
+  int nbpts = cells[j * cols + i + 1] - cells[j * cols + i];
+  unsigned char *lab = labels + cells[j * cols + i];
+  if (csize == MIN_CELL_SIZE)
+  {
+    for (int k = 0; k < nbpts; k++) *lab++ = (unsigned char) 0;
+  }
+  else
+  {
+    int cdiv = csize / MIN_CELL_SIZE;
+    int cxmin = i * csize + (i % cdiv) * MIN_CELL_SIZE;
+    int cymin = j * csize + (j % cdiv) * MIN_CELL_SIZE;
+    int cxmax = cxmin + MIN_CELL_SIZE;
+    int cymax = cymin + MIN_CELL_SIZE;
+
+    Pt3i *pt = points + cells[j * cols + i];
+    Pt3i *ptfin = pt + nbpts;
+    while (pt->y () < cymin && pt != ptfin)
+    {
+      pt ++;
+      lab ++;
+    }
+    while (pt->x () < cxmin && pt != ptfin)
+    {
+      pt ++;
+      lab ++;
+    }
+    while (pt->x () < cxmax && pt->y () < cymax && pt != ptfin)
+    {
+      *lab++ = (unsigned char) 0;
+      pt ++;
+    }
+  }
+}
+
+
+bool IPtTile::loadXYZFile (std::string ptsfile, int subdiv, bool lab_in)
+{
+  // Opens XYZ file
+  bool labelled = (ptsfile.find (XYZL_SUFFIX) != std::string::npos);
+  lab_in = lab_in && labelled;
+  std::cout << "loading " << ptsfile << " ..." << std::endl;
+  std::ifstream fpts (ptsfile.c_str (), std::ios::in);
+  if (! fpts.is_open ()) return false;
+
+  // Load XYZ file points
+  nb = 0;
+  double x, y, z;
+  char lab;
+  int ix, iy, iz;
+  int lrow = rows * subdiv;
+  int lcol = cols * subdiv;
+  std::vector<Pt3i> outs;
+  std::vector<Pt3i> **xyzcells = new std::vector<Pt3i>*[lrow];
+  std::vector<unsigned char> **labcells
+         = (lab_in ? new std::vector<unsigned char>*[lrow] : NULL);
+  for (int i = 0; i < lrow; i++)
+  {
+    xyzcells[i] = new std::vector<Pt3i>[lcol];
+    if (lab_in) labcells[i] = new std::vector<unsigned char>[lcol];
+  }
+  fpts >> x;
+  for (int i = 0; ! fpts.eof (); i++)
+  {
+    fpts >> y;
+    fpts >> z;
+    if (labelled) fpts >> lab;
+    ix = (int) ((int64_t) (x * XYZ_UNIT + 0.5) - xmin);
+    iy = (int) ((int64_t) (y * XYZ_UNIT + 0.5) - ymin);
+    iz = (int) (z * XYZ_UNIT + 0.5);
+
+    int gx = (ix * subdiv) / csize;
+    int gy = (iy * subdiv) / csize;
+    if (gx < 0 || gy < 0 || gx >= lcol || gy >= lrow)
+    {
+      outs.push_back (Pt3i (ix, iy, iz));
+      std::cout << "Out pt (" << ix << ", " << iy << ", " << iz << ") -> ("
+                << gx << ", " << gy << ")" << std::endl;
+      std::cout << "Origin " << nb << " : " << x << ", " << y << ", " << z
+                << ")" << std::endl;
+    }
+    else
+    {
+      xyzcells[gy][gx].push_back (Pt3i (ix, iy, iz));
+      if (lab_in) labcells[gy][gx].push_back (
+                      lab == 'P' ? (unsigned char) 1 : (unsigned char) 0);
+      nb ++;
+      if (iz > zmax) zmax = iz;
+    }
+    fpts >> x;
+  }
+  fpts.close ();
+
+  // Displays statistics
+  std::cout << "Outliers size = " << outs.size () << std::endl;
+  int cmax = 0;
+  for (int j = 0; j < lrow; j++)
+    for (int i = 0; i < lcol; i++)
+      if ((int) xyzcells[j][i].size () > cmax)
+        cmax = (int) xyzcells[j][i].size ();
+  int cmin = cmax;
+  for (int j = 0; j < lrow; j++)
+    for (int i = 0; i < lcol; i++)
+      if ((int) xyzcells[j][i].size () < cmin)
+        cmin = (int) xyzcells[j][i].size ();
+  std::cout << "Max cell size = " << cmax << std::endl;
+  std::cout << "Min cell size = " << cmin << std::endl;
+  int nz = 0, nyny = 0, nlab = 0;
+  for (int j = 0; j < lrow; j++)
+    for (int i = 0; i < lcol; i++)
+      if (xyzcells[j][i].empty ()) nz ++;
+      else
+      {
+        nyny ++;
+        if (lab_in)
+        {
+          std::vector<unsigned char>::iterator lit = labcells[j][i].begin ();
+          while (lit != labcells[j][i].end ())
+            if (*lit++ == (unsigned char) 1) nlab ++;
+        }
+      }
+  std::cout << nz << " cellules vides" << std::endl;
+  std::cout << nyny << " cellules occupees" << std::endl;
+  if (lab_in) std::cout << nlab << " labelled points" << std::endl;
+
+  // Sets IPtTile structure
+  points = new Pt3i[nb];
+  if (lab_in && ! labelling)
+  {
+    labels = new unsigned char[nb];
+    labelling = true;
+  }
+  Pt3i *ppoints = points;
+  unsigned char *plabs = labels;
+  int *pcells = cells;
+  *pcells++ = 0;
+  int inb = 0;
+  for (int j = 0; j < rows ; j++)
+    for (int i = 0; i < cols ; i++)
+    {
+      for (int cj = 0; cj < subdiv; cj ++)
+        for (int ci = 0; ci < subdiv; ci ++)
+        {
+          inb += (int) (xyzcells[j * subdiv + cj][i * subdiv + ci].size ());
+          const std::vector<Pt3i> *pts
+            = &(xyzcells[j * subdiv + cj][i * subdiv + ci]);
+          const std::vector<unsigned char> *labs = NULL;
+          if (lab_in) labs = &(labcells[j * subdiv + cj][i * subdiv + ci]);
+          std::vector<Pt3i>::const_iterator it = pts->begin ();
+          std::vector<unsigned char>::const_iterator lit;
+          if (lab_in) lit = labs->begin ();
+          while (it != pts->end ())
+          {
+            (ppoints++)->set (it->x () + R_OFF, it->y () + R_OFF, it->z ());
+            if (lab_in) *plabs++ = *lit++;
+            it ++;
+          }
+        }
+      *pcells++ = inb;
+    }
+
+  // Temporary cloud memory release
+  for (int i = 0; i < lrow; i++) delete [] xyzcells[i];
+  delete [] xyzcells;
+  if (lab_in)
+  {
+    for (int i = 0; i < lrow; i++) delete [] labcells[i];
+    delete [] labcells;
+  }
+  return true;
+}
+
+
+bool IPtTile::saveXYZFile (bool lab_out) const
+{
+  std::string pf (XYZ_DIR);
+  size_t epos = fname.find (TIL_SUFFIX);
+  if (fname.find (TOP_DIR) != std::string::npos)
+  {
+    size_t spos = fname.find (TOP_PREFIX) + TOP_PREFIX.length ();
+    pf += fname.substr (spos, epos - spos);
+  }
+  else if (fname.find (MID_DIR) != std::string::npos)
+  {
+    size_t spos = fname.find (MID_PREFIX) + MID_PREFIX.length ();
+    pf += fname.substr (spos, epos - spos);
+  }
+  else if (fname.find (ECO_DIR) != std::string::npos)
+  {
+    size_t spos = fname.find (ECO_PREFIX) + ECO_PREFIX.length ();
+    pf += fname.substr (spos, epos - spos);
+  }
+  pf += (lab_out && labelling ? XYZL_SUFFIX : XYZ_SUFFIX);
+  return (saveXYZFile (pf, lab_out && labelling));
+}
+
+
+bool IPtTile::saveXYZFile (std::string name, bool lab_out) const
+{
+  std::cout << "saving " << name << " (" << nb << "pts) ..." << std::endl;
+  lab_out = lab_out && labelling
+            && (name.find (XYZL_SUFFIX) != std::string::npos);
+  std::ofstream fpts (name.c_str (), std::ios::out);
+  if (! fpts.is_open ())
+  {
+    std::cout << "Can't save tile in " << name << std::endl;
     return false;
   }
-  fpts.read ((char *) (&cols), sizeof (int));
-  fpts.read ((char *) (&rows), sizeof (int));
-  fpts.read ((char *) (&xmin), sizeof (int64_t));
-  fpts.read ((char *) (&ymin), sizeof (int64_t));
-  fpts.read ((char *) (&zmax), sizeof (int64_t));
-  fpts.read ((char *) (&csize), sizeof (int));
-  fpts.read ((char *) (&nb), sizeof (int));
-  cells = ind;
-  fpts.read ((char *) cells, sizeof (int) * (rows * cols + 1));
-  points = pts;
-  fpts.read ((char *) points, sizeof (Pt3i) * (nb));
+  Pt3i *ppt = points;
+  int nbl = 0;
+  unsigned char *lbs = labels;
+  for (int i = 0; i < nb; i++)
+  {
+    int64_t vx = xmin + ppt->x () - R_OFF;
+    int64_t vy = ymin + ppt->y () - R_OFF;
+    int64_t vz = ppt->z ();
+    int dcx = (int) (vx - (vx / 1000) * 1000);
+    int dcy = (int) (vy - (vy / 1000) * 1000);
+    int dcz = (int) (vz - (vz / 1000) * 1000);
+    std::string digx (".");
+    if (dcx < 100) digx += std::string ("0");
+    if (dcx < 10) digx += std::string ("0");
+    std::string digy (".");
+    if (dcy < 100) digy += std::string ("0");
+    if (dcy < 10) digy += std::string ("0");
+    std::string digz (".");
+    if (dcz < 100) digz += std::string ("0");
+    if (dcz < 10) digz += std::string ("0");
+    if (lab_out) fpts << (vx / 1000) << digx << dcx << " "
+                  << (vy / 1000) << digy << dcy << " "
+                  << (vz / 1000) << digz << dcz << " "
+                  << (*lbs == (unsigned char) 1 ? "P" : "N") << std::endl;
+    else fpts << (vx / 1000) << digx << dcx << " "
+              << (vy / 1000) << digy << dcy << " "
+              << (vz / 1000) << digz << dcz << std::endl;
+    if (lab_out && *lbs == (unsigned char) 1) nbl ++;
+    ppt ++;
+    lbs ++;
+  }
   fpts.close ();
-  return (true);
-}
-
-
-void IPtTile::releasePoints ()
-{
-  cells = NULL;
-  points = NULL;
+  std::cout << "  saved " << nb << " pts ("
+            << nbl << " labelled)" << std::endl;
+  return true;
 }
 
 

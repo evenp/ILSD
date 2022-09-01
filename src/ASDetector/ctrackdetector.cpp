@@ -25,6 +25,7 @@
 #include "ctrackdetector.h"
 #include <cmath>
 #include <algorithm>
+#include <iostream>
 
 
 const int CTrackDetector::RESULT_NONE = 0;
@@ -289,10 +290,11 @@ void CTrackDetector::detect (int exlimit)
     }
     it ++;
   }
-  sort (cpts.begin (), cpts.end (), compFurther);
+  sort (cpts.begin (), cpts.end (), compIFurther);
 
   // Detects the central plateau
   CarriageTrack *ct = new CarriageTrack ();
+  ct->setDetectionSeed (p1, p2, csize);
   if (exlimit != 0) ict = ct;
   else fct = ct;
   Plateau *cpl = new Plateau (&pfeat);
@@ -429,10 +431,11 @@ void CTrackDetector::detect ()
     }
     it ++;
   }
-  sort (cpts.begin (), cpts.end (), compFurther);
+  sort (cpts.begin (), cpts.end (), compIFurther);
 
   // Creates the carriage track
   fct = new CarriageTrack ();
+  fct->setDetectionSeed (p1, p2, csize);
 
   float *tests = new float[NB_SIDE_TRIALS];
   tests[0] = 0.0f;
@@ -535,16 +538,18 @@ void CTrackDetector::track (bool onright, bool reversed, int exlimit,
       a = -a;
       b = -b;
     }
+/*
     float val = (refs + refe) / 2;
     float posx = p1.x () + ((p2.x () - p1.x ()) * csize / l12)
                            * val / csize;
     float posy = p1.y () + ((p2.y () - p1.y ()) * csize / l12)
                            * val / csize;
     float valc = a * posx + b * posy;
-    int c = (int) (valc < 0.0f ? valc - 0.5f : valc + 0.5f);
-
-    disp->bindTo (a, b, c);
-    ds->bindTo (a, b, c * subdiv + subdiv / 2);
+    int scan_shift = (int) (valc < 0.0f ? valc - 0.5f : valc + 0.5f);
+*/
+    int scan_shift = ct->scanShift ((refs + refe) / 2);
+    disp->bindTo (a, b, scan_shift);
+    ds->bindTo (a, b, scan_shift * subdiv + subdiv / 2);
 
     // Collects next scan points and sorts them by distance
     std::vector<Pt2i> pix;
@@ -581,17 +586,20 @@ void CTrackDetector::track (bool onright, bool reversed, int exlimit,
 
       // Detects the plateau and updates the track section
       Plateau *pl = new Plateau (&pfeat);
+      pl->setScanShift (scan_shift);
       sort (pts.begin (), pts.end (), compIFurther);
       pl->track (pts, refs, refe, refh, 0.0f, confdist);
       if (pl->getStatus () != Plateau::PLATEAU_RES_OK)
       {
         Plateau *pl2 = new Plateau (&pfeat);
+        pl2->setScanShift (scan_shift);
         pl2->track (pts, refs, refe, refh,
                     pfeat.plateauSearchDistance (), confdist);
         if (pl2->getStatus () != Plateau::PLATEAU_RES_OK)
         {
           delete pl2;
           Plateau *pl3 = new Plateau (&pfeat);
+          pl3->setScanShift (scan_shift);
           pl3->track (pts, refs, refe, refh,
                       -pfeat.plateauSearchDistance (), confdist);
           if (pl3->getStatus () != Plateau::PLATEAU_RES_OK)
@@ -828,13 +836,14 @@ int CTrackDetector::boundsStability (float slast, float elast,
 }
 
 
-bool CTrackDetector::compFurther (Pt2f p1, Pt2f p2)
+bool CTrackDetector::compIFurther (Pt2f p1, Pt2f p2)
 {
-  return (p2.x () > p1.x ());
+  return ((int) (p2.x () * 1000 + 0.5f) > (int) (p1.x () * 1000 + 0.5f)
+     || ((int) (p2.x () * 1000 + 0.5f) == (int) (p1.x () * 1000 + 0.5f)
+         && (int) (p2.y () * 1000 + 0.5f) > (int) (p1.y () * 1000 + 0.5f)));
 }
 
-
-bool CTrackDetector::compIFurther (Pt2f p1, Pt2f p2)
+bool CTrackDetector::compLFurther (Pt3f p1, Pt3f p2)
 {
   return ((int) (p2.x () * 1000 + 0.5f) > (int) (p1.x () * 1000 + 0.5f)
      || ((int) (p2.x () * 1000 + 0.5f) == (int) (p1.x () * 1000 + 0.5f)
@@ -989,5 +998,174 @@ void CTrackDetector::testScanShiftExtraction () const
     // std::cout << "DIR = (" << vev[i].x () << ", " << vev[i].y ()
     //           << ") ---> (" << lshift.x () << ", " << lshift.y () << ")"
     //           << std::endl;
+  }
+}
+
+
+void CTrackDetector::labelPoints (CarriageTrack *ct)
+{
+  if (! ct->isValid ()) return;
+
+  Pt2i ctp1 (ct->getSeedStart ());
+  Pt2i ctp2 (ct->getSeedEnd ());
+  Pt2f p1f (csize * (ctp1.x () + 0.5f), csize * (ctp1.y () + 0.5f));
+  Vr2f p12 (csize * (ctp2.x () - ctp1.x ()), csize * (ctp2.y () - ctp1.y ()));
+  float l12 = (float) sqrt (p12.x () * p12.x () + p12.y () * p12.y ());
+  int a = ctp2.x () - ctp1.x ();
+  int b = ctp2.y () - ctp1.y ();
+  if (a < 0.)
+  {
+    a = -a;
+    b = -b;
+  }
+  DirectionalScanner *ds = scanp.getScanner (
+    Pt2i (ctp1.x () * subdiv + subdiv / 2, ctp1.y () * subdiv + subdiv / 2),
+    Pt2i (ctp2.x () * subdiv + subdiv / 2, ctp2.y () * subdiv + subdiv / 2),
+    true);
+  ds->releaseClearance ();
+
+  std::vector<Pt2i> pix0;
+  int nbp = ds->first (pix0);
+  for (int i = 0; nbp != 0 && i < subdiv / 2; i++)
+    nbp = ds->nextOnRight (pix0);
+  nbp = 1;
+  for (int i = 0; nbp != 0 && i < subdiv - 1 - subdiv / 2; i++)
+    nbp = ds->nextOnLeft (pix0);
+
+  Plateau *pl = ct->plateau (0);
+  if (pl->isAccepted ())
+  {
+    std::vector<Pt3f> cpts;
+    std::vector<int> tls;
+    std::vector<int> lbs;
+    std::vector<Pt2i>::iterator it = pix0.begin ();
+    int labind = 0;
+    while (it != pix0.end ())
+    {
+      std::vector<Pt3f> ptcl;
+      ptset->collectPointsAndLabels (ptcl, tls, lbs, it->x (), it->y ());
+      std::vector<Pt3f>::iterator pit = ptcl.begin ();
+      while (pit != ptcl.end ())
+      {
+        Vr2f pcl (pit->x () - p1f.x (), pit->y () - p1f.y ());
+        cpts.push_back (Pt3f (pcl.scalarProduct (p12) / l12,
+                              pit->z (), labind + 0.1f));
+        pit ++;
+        labind ++;
+      }
+      it ++;
+    }
+    sort (cpts.begin (), cpts.end (), compLFurther);
+    int s_num = pl->startIndex (), e_num = pl->endIndex ();
+    if ((int) cpts.size () > e_num)
+    {
+      std::vector<Pt3f>::iterator it = cpts.begin () + s_num;
+      for (int i = s_num; i != e_num && it != cpts.end (); i++)
+      {
+        int ind = (int) (it->z ());
+        ptset->labelAsTrack (tls[ind], lbs[ind]);
+        it ++;
+      }
+    }
+  }
+
+  bool search = true;
+  for (int i = -1; i >= - ct->getRightScanCount (); i--)
+  {
+    Plateau *pl = ct->plateau (i);
+    ds->bindTo (a, b, pl->scanShift () * subdiv + subdiv / 2);
+    std::vector<Pt2i> pix;
+    for (int i = 0; search && i < subdiv; i++)
+      if (scanp.isLastScanReversed ())
+      {
+        if (ds->nextOnLeft (pix) == 0) search = false;
+      }
+      else if (ds->nextOnRight (pix) == 0) search = false;
+
+    if (pl->isAccepted ())
+    {
+      std::vector<Pt3f> cpts;
+      std::vector<int> tls;
+      std::vector<int> lbs;
+      std::vector<Pt2i>::iterator it = pix.begin ();
+      int labind = 0;
+      while (it != pix.end ())
+      {
+        std::vector<Pt3f> ptcl;
+        ptset->collectPointsAndLabels (ptcl, tls, lbs, it->x (), it->y ());
+        std::vector<Pt3f>::iterator pit = ptcl.begin ();
+        while (pit != ptcl.end ())
+        {
+          Vr2f pcl (pit->x () - p1f.x (), pit->y () - p1f.y ());
+          cpts.push_back (Pt3f (pcl.scalarProduct (p12) / l12,
+                                pit->z (), labind + 0.1f));
+          pit ++;
+          labind ++;
+        }
+        it ++;
+      }
+      sort (cpts.begin (), cpts.end (), compLFurther);
+      int s_num = pl->startIndex (), e_num = pl->endIndex ();
+      if ((int) cpts.size () > e_num)
+      {
+        std::vector<Pt3f>::iterator it = cpts.begin () + s_num;
+        for (int i = s_num; i != e_num && it != cpts.end (); i++)
+        {
+          int ind = (int) (it->z ());
+          ptset->labelAsTrack (tls[ind], lbs[ind]);
+          it ++;
+        }
+      }
+    }
+  }
+
+  search = true;
+  for (int i = 1; i <= ct->getLeftScanCount (); i++)
+  {
+    Plateau *pl = ct->plateau (i);
+    ds->bindTo (a, b, pl->scanShift () * subdiv + subdiv / 2);
+    std::vector<Pt2i> pix;
+    for (int i = 0; search && i < subdiv; i++)
+      if (scanp.isLastScanReversed ())
+      {
+        if (ds->nextOnRight (pix) == 0) search = false;
+      }
+      else if (ds->nextOnLeft (pix) == 0) search = false;
+
+    if (pl->isAccepted ())
+    {
+      std::vector<Pt3f> cpts;
+      std::vector<int> tls;
+      std::vector<int> lbs;
+      std::vector<Pt2i>::iterator it = pix.begin ();
+      int labind = 0;
+      while (it != pix.end ())
+      {
+        std::vector<Pt3f> ptcl;
+        ptset->collectPointsAndLabels (ptcl, tls, lbs, it->x (), it->y ());
+        std::vector<Pt3f>::iterator pit = ptcl.begin ();
+        while (pit != ptcl.end ())
+        {
+          Vr2f pcl (pit->x () - p1f.x (), pit->y () - p1f.y ());
+          cpts.push_back (Pt3f (pcl.scalarProduct (p12) / l12,
+                                pit->z (), labind + 0.1f));
+          pit ++;
+          labind ++;
+        }
+        it ++;
+      }
+      sort (cpts.begin (), cpts.end (), compLFurther);
+      int s_num = pl->startIndex (), e_num = pl->endIndex ();
+      if ((int) cpts.size () > e_num)
+      {
+        std::vector<Pt3f>::iterator it = cpts.begin () + s_num;
+        for (int i = s_num; i != e_num && it != cpts.end (); i++)
+        {
+          int ind = (int) (it->z ());
+          ptset->labelAsTrack (tls[ind], lbs[ind]);
+          it ++;
+        }
+      }
+    }
   }
 }

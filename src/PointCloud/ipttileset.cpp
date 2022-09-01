@@ -23,10 +23,11 @@
 */
 
 #include <iostream>
-#include <fstream>
 #include "ipttileset.h"
 
 const int IPtTileSet::DEFAULT_BUF_SIZE = 3;
+
+const float IPtTileSet::MM2M = 0.001f;
 
 
 IPtTileSet::IPtTileSet (int buffer_size)
@@ -244,6 +245,27 @@ int IPtTileSet::cellSize (int i, int j) const
 }
 
 
+int IPtTileSet::heightOfFirstPointIn (std::vector<Pt2i> &scan) const
+{
+  std::vector<Pt2i>::iterator it = scan.begin ();
+  while (it != scan.end ())
+  {
+    int icell = it->x () / cdiv, jcell = it->y () / cdiv; // cdiv = 10 avec over
+    int itile = icell / twidth, jtile = jcell / theight;
+    IPtTile *tile = tiles[jtile * tcols + itile];
+    if (tile != NULL && ! tile->unloaded ())
+    {
+      icell = icell - itile * tile->countOfColumns ();
+      jcell = jcell - jtile * tile->countOfRows ();
+      if (tile->cellSize (icell, jcell) != 0)
+        return (tile->cellStartPt(icell, jcell)->z ());
+    }
+    it ++;
+  }
+  return 0;
+}
+
+
 bool IPtTileSet::collectPoints (std::vector<Pt3i> &pts, int i, int j) // const
 {
   int icell = i / cdiv, jcell = j / cdiv;                // cdiv = 10 avec over
@@ -333,6 +355,70 @@ bool IPtTileSet::collectPoints (std::vector<Pt3f> &pts, int i, int j) // const
           pts.push_back (Pt3f (((float) (txspread * itile + pt->x ())) * MM2M,
                                ((float) (tyspread * jtile + pt->y ())) * MM2M,
                                ((float) pt->z ()) * MM2M));
+          pt ++;
+        }
+      }
+    }
+  }
+  return true;
+}
+
+
+bool IPtTileSet::collectPointsAndLabels (
+                         std::vector<Pt3f> &pts, std::vector<int> &tls,
+                         std::vector<int> &lbs, int i, int j) // const
+{
+  int icell = i / cdiv, jcell = j / cdiv;                // cdiv = 10 avec over
+  int itile = icell / twidth, jtile = jcell / theight;
+  IPtTile *tile = tiles[jtile * tcols + itile];
+  if (tile != NULL)
+  {
+    if (tile->unloaded ()) return false;
+    icell = icell - itile * tile->countOfColumns ();
+    jcell = jcell - jtile * tile->countOfRows ();
+    int nbpts = tile->cellSize (icell, jcell);
+    if (nbpts != 0)
+    {
+      Pt3i *pt = tile->cellStartPt (icell, jcell);
+      int lab = tile->cellStart (icell, jcell);
+      if (cdiv == 1)
+      {
+        for (int i = 0; i < nbpts; i++)
+        {
+          pts.push_back (Pt3f (((float) (txspread * itile + pt->x ())) * MM2M,
+                               ((float) (tyspread * jtile + pt->y ())) * MM2M,
+                               ((float) pt->z ()) * MM2M));
+          tls.push_back (jtile * tcols + itile);
+          lbs.push_back (lab++);
+          pt ++;
+        }
+      }
+      else
+      {
+        int cxy = tile->cellSize () / cdiv;
+        int cxmin = icell * tile->cellSize () + (i % cdiv) * cxy;
+        int cymin = jcell * tile->cellSize () + (j % cdiv) * cxy;
+        int cxmax = cxmin + cxy;
+        int cymax = cymin + cxy;
+
+        Pt3i *ptfin = pt + nbpts;
+        while (pt->y () < cymin && pt != ptfin)
+        {
+          pt ++;
+          lab ++;
+        }
+        while (pt->x () < cxmin && pt != ptfin)
+        {
+          pt ++;
+          lab ++;
+        }
+        while (pt->x () < cxmax && pt->y () < cymax && pt != ptfin)
+        {
+          pts.push_back (Pt3f (((float) (txspread * itile + pt->x ())) * MM2M,
+                               ((float) (tyspread * jtile + pt->y ())) * MM2M,
+                               ((float) pt->z ()) * MM2M));
+          tls.push_back (jtile * tcols + itile);
+          lbs.push_back (lab++);
           pt ++;
         }
       }
@@ -974,6 +1060,127 @@ void IPtTileSet::saveSubTile (int imin, int jmin, int imax, int jmax) const
   ntile->setData (pts, inds);
   ntile->save ("til/top/top_newtile.til");
   delete ntile;
+}
+
+
+void IPtTileSet::labelAsTrack (int tnum, int plab)
+{
+  tiles[tnum]->labelAsTrack (plab);
+}
+
+
+void IPtTileSet::unlabel (int i, int j, int unit)
+{
+  int icell = i * unit / cdiv, jcell = j * unit / cdiv;  // cdiv = 10 avec over
+  int itile = icell / twidth, jtile = jcell / theight;
+  IPtTile *tile = tiles[jtile * tcols + itile];
+  if (tile != NULL && !tile->unloaded ())
+    for (int uj = 0; uj < unit; uj++)
+      for (int ui = 0; ui < unit; ui++)
+        tile->unlabel (icell + ui - twidth * itile,
+                       jcell + uj - theight * jtile);
+}
+
+
+bool IPtTileSet::isLabelled (int i, int j, int unit)
+{
+  int icell = i * unit / cdiv, jcell = j * unit / cdiv;  // cdiv = 10 avec over
+  int itile = icell / twidth, jtile = jcell / theight;
+  IPtTile *tile = tiles[jtile * tcols + itile];
+  if (tile == NULL || tile->unloaded ()) return false;
+  for (int uj = 0; uj < unit; uj++)
+    for (int ui = 0; ui < unit; ui++)
+      if (tile->isLabelled (icell + ui - twidth * itile,
+                            jcell + uj - theight * jtile)) return true;
+  return false;
+}
+
+
+int IPtTileSet::countOfLabelledPoints ()
+{
+  int nblp = 0;
+  for (int j = 0; j < trows; j++)
+    for (int i = 0; i < tcols; i++)
+      if (tiles[j * tcols + i] != NULL && ! tiles[j * tcols + i]->unloaded ())
+        nblp += tiles[j * tcols + i]->countOfLabelledPoints ();
+  return nblp;
+}
+
+
+int IPtTileSet::countOfLabelledPixels (int unit)
+{
+  int nblp = 0;
+  for (int j = 0; j < trows; j++)
+    for (int i = 0; i < tcols; i++)
+    {
+      IPtTile *tile = tiles[j * tcols + i];
+      if (tile != NULL && ! tile->unloaded ())
+      {
+        for (int tj = 0; tj < tile->countOfRows () / unit; tj++)
+          for (int ti = 0; ti < tile->countOfColumns () / unit; ti++)
+          {
+            bool unlab = true;
+            for (int lj = 0; unlab && lj < unit; lj++)
+              for (int li = 0; unlab && li < unit; li++)
+                if (tile->isLabelled (ti * unit + li, tj * unit + lj))
+                  unlab = false;
+            if (! unlab) nblp ++;
+          }
+      }
+    }
+  return nblp;
+}
+
+
+void IPtTileSet::createLabels ()
+{
+  for (int j = 0; j < trows; j++)
+    for (int i = 0; i < tcols; i++)
+      if (tiles[j * tcols + i] != NULL && ! tiles[j * tcols + i]->unloaded ())
+        tiles[j * tcols + i]->createLabels ();
+}
+
+
+bool IPtTileSet::loadLabels (std::string dir) const
+{
+  bool ok = true;
+  for (int j = 0; ok && j < trows; j++)
+    for (int i = 0; ok && i < tcols; i++)
+      if (tiles[j * tcols + i] != NULL && ! tiles[j * tcols + i]->unloaded ())
+        if (! tiles[j * tcols + i]->loadLabels (dir)) ok = false;
+  return ok;
+}
+
+
+bool IPtTileSet::saveLabels (std::string dir) const
+{
+  bool ok = true;
+  for (int j = 0; ok && j < trows; j++)
+    for (int i = 0; ok && i < tcols; i++)
+      if (tiles[j * tcols + i] != NULL && ! tiles[j * tcols + i]->unloaded ())
+        if (! tiles[j * tcols + i]->saveLabels (dir)) ok = false;
+  return ok;
+}
+
+
+void IPtTileSet::toXYZ (bool lab)
+{
+  for (int j = 0; j < trows; j++)
+    for (int i = 0; i < tcols; i++)
+      if (tiles[j * tcols + i] != NULL)
+        tiles[j * tcols + i]->saveXYZFile (lab);
+}
+
+
+bool IPtTileSet::saveXYZFile (bool lab) const
+{
+  return (tiles[0]->saveXYZFile (lab));
+}
+
+
+bool IPtTileSet::loadXYZFile (std::string name, int sub, bool lab)
+{
+  return (tiles[0]->loadXYZFile (name, sub, lab));
 }
 
 
