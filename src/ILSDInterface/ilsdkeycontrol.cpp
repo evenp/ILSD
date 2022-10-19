@@ -38,6 +38,8 @@
 #define DEFAULT_STROKE_FILE std::string("test")
 #define DEFAULT_SELECTION_DIR std::string("./selections/")
 #define DEFAULT_SELECTION_FILE std::string("last_selection")
+#define GT_IN std::string("gt/gt_in.png")
+#define GT_OUT std::string("gt/gt_out.png")
 
 
 ILSDKeyControl::ILSDKeyControl ()
@@ -204,6 +206,28 @@ void ILSDKeyControl::processKey (GLWindow* parent,
             tdetector->incMaxShiftLength ((mods & GLFW_MOD_SHIFT) ? -1 : 1);
             std::cout << "Max shift length = "
                       << (tdetector->maxShiftLength ()) << std::endl;
+            det_widget->detectAndDisplay ();
+          }
+        }
+        break;
+
+      case GLFW_KEY_G :
+        if (mods & GLFW_MOD_CONTROL)
+        {
+          det_widget->setGroundTruthDisplay (
+            ! det_widget->groundTruthDisplay ());
+          if (det_widget->groundTruthDisplay ())
+            det_widget->setGroundTruthDisplay (
+              det_widget->loadGroundTruth (GT_IN));
+          else det_widget->saveGroundTruth (GT_OUT);
+          det_widget->detectAndDisplay ();
+        }
+        else if (det_widget->isInputStrokeValid ())
+        {
+          if (det_widget->mode () != ILSDDetectionWidget::MODE_NONE)
+          {
+            det_widget->addToGroundTruth ();
+            det_widget->deactivateInputStroke ();
             det_widget->detectAndDisplay ();
           }
         }

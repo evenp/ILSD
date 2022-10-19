@@ -34,6 +34,8 @@
 #include <iostream>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 ASImage::ASImage()
 	: imageSize(ASCanvasPos(0, 0))
@@ -51,6 +53,17 @@ ASImage::ASImage(ASCanvasPos newImageSize)
 	zoom = 0;
 	displayPositionX = 0;
 	displayPositionY = 0;
+}
+
+bool ASImage::load(const char* newFilePath)
+{
+	int iw, ih, ich;
+	textureData = (uint32_t*) stbi_load (newFilePath, &iw, &ih, &ich, 4);
+	if (textureData == NULL || iw != imageSize.x || ih != imageSize.y)
+		return false;
+	bIsTextureDirty = false;
+	bAreTextureDataBuilt = true;
+	return true;
 }
 
 bool ASImage::save(const char* newFilePath, const char* fileFormat) const
@@ -246,4 +259,9 @@ void ASImage::copyTo(ASImage& target) const
 	target.imageSize = imageSize;
 	memcpy(target.textureData, textureData, sizeof(int) * imageSize.x * imageSize.y);
 	target.bIsTextureDirty = true;
+}
+
+bool ASImage::hasBlue(const uint32_t& posX, const uint32_t& posY) const
+{
+	return(GetPixelColor(posX,posY).b != 0);
 }

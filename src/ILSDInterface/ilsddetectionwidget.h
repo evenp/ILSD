@@ -157,10 +157,39 @@ public:
   void addToSelection (const std::string& path);
 
   /**
+   * \brief Adds the currently detected structure in ground truth image.
+   */
+  void addToGroundTruth ();
+
+  /**
    * \brief Loads a selection of detected structures.
    * @param path Selection file name.
    */
   void loadSelection (const std::vector<std::string>& path);
+
+  /**
+   * \brief Returns the ground truth display status.
+   */
+  inline bool groundTruthDisplay () const { return disp_gt; }
+
+  /**
+   * \brief Sets the ground truth display status.
+   * @param status New status value.
+   */
+  inline void setGroundTruthDisplay (bool status) { disp_gt = status; }
+
+  /**
+   * \brief Loads a ground truth image.
+   * Returns whether loading succeeded.
+   * @param path Ground truth image path name.
+   */
+  bool loadGroundTruth (const std::string& path);
+
+  /**
+   * \brief Saves the ground truth image.
+   * @param path Ground truth image name.
+   */
+  void saveGroundTruth (const std::string& path);
 
   /**
    * \brief Saves screen shot.
@@ -491,6 +520,11 @@ public:
     return udef && ! p1.equals (p2); }
 
   /**
+   * \brief Deactivate the input stroke.
+   */
+  inline void deactivateInputStroke () { udef = false; }
+
+  /**
    * \brief Runs a detection using current input stroke.
    */
   inline void detect () { detect (p1, p2); }
@@ -749,6 +783,8 @@ private:
   ASImage loadedImage;
   /** Present image augmented with processed data. */
   ASImage augmentedImage;
+  /** Ground truth image. */
+  ASImage *gtImage;
   /** Points cloud. */
   IPtTileSet ptset;
   /** Width of the present image. */
@@ -802,6 +838,8 @@ private:
   bool disp_detection;
   /** Saved structure display modality. */
   bool disp_saved;
+  /** Ground truth display modality. */
+  bool disp_gt;
   /** Carriage track display style. */
   int ctrack_style;
   /** Ridge or hollow display style. */
@@ -905,6 +943,12 @@ private:
    * @param painter Drawing device.
    */
   void drawTiles (ASPainter& painter);
+
+  /**
+   * \brief Draws ground truth image.
+   * @param painter Drawing device.
+   */
+  void drawGroundTruth (ASPainter &painter);
 
   /**
    * \brief Lighten the image according to the black level set.
@@ -1023,7 +1067,7 @@ private:
    * @param p12 Input stroke vector.
    * @param l12 Input stroke length.
    */
-  bool displayConnectedPlateau (ASPainter& painter, CarriageTrack* ct, int num,
+  void displayConnectedPlateau (ASPainter& painter, CarriageTrack* ct, int num,
                                 bool rev, Pt2i& pt0, Pt2i& pt1,
                                 int& miss, float& slast, float& elast,
                                 Pt2i pp1, Vr2i p12, float l12);

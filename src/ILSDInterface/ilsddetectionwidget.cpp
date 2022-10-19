@@ -51,7 +51,7 @@
 #define TILE_NAME_MAX_LENGTH 200
 
 
-const std::string ILSDDetectionWidget::VERSION = "1.1.7";
+const std::string ILSDDetectionWidget::VERSION = "1.1.8";
 
 const int ILSDDetectionWidget::MODE_NONE = 0;
 const int ILSDDetectionWidget::MODE_CTRACK = 1;
@@ -93,7 +93,9 @@ ILSDDetectionWidget::ILSDDetectionWidget ()
   ridge_style = RIDGE_DISP_CENTER;
   sel_style = SEL_THICK;
   disp_saved = false;
+  disp_gt = false;
   disp_detection = true;
+  gtImage = NULL;
   perf_mode = false;
   popup_nb = 0;
 
@@ -791,6 +793,30 @@ bool ILSDDetectionWidget::loadStroke (IniLoader *ild)
 }
 
 
+bool ILSDDetectionWidget::loadGroundTruth (const std::string& path)
+{
+  gtImage = new ASImage (ASCanvasPos (width, height));
+  if (! gtImage->load (path.c_str ()))
+  {
+    delete gtImage;
+    gtImage = NULL;
+    std::cout << "Can't read " << path << std::endl;
+    return false;
+  }
+  disp_gt = true;
+  return true;
+}
+
+
+void ILSDDetectionWidget::saveGroundTruth (const std::string& path)
+{
+  gtImage->save (path.c_str ());
+  delete gtImage;
+  gtImage = NULL;
+  disp_gt = false;
+}
+
+
 void ILSDDetectionWidget::saveScreen (const std::string& path)
 {
   augmentedImage.save (path.c_str ());
@@ -1058,6 +1084,38 @@ void ILSDDetectionWidget::addToSelection (const std::string& path)
   std::cout << "Selection added to " << path << std::endl;
   if (disp_saved) loadSelection ({ path });
   else display ();
+}
+
+
+void ILSDDetectionWidget::addToGroundTruth ()
+{
+  if (disp_gt)
+  {
+    if (det_mode == MODE_CTRACK)
+    {
+      CarriageTrack *ct = tdetector.getCarriageTrack ();
+      if (ct != NULL)
+      {
+        ASPainter painter (gtImage);
+        if (ctrack_style != CTRACK_DISP_SCANS)
+          displayConnectedTrack (painter, ASColor::WHITE);
+        else displayCarriageTrack (painter, ASColor::WHITE);
+        tdetector.clear ();
+      }
+    }
+    else if (det_mode & MODE_RIDGE_OR_HOLLOW)
+    {
+      Ridge *rdg = rdetector.getRidge ();
+      if (rdg != NULL)
+      {
+        ASPainter painter (gtImage);
+        if (ridge_style != RIDGE_DISP_SCANS)
+          displayConnectedRidge (painter, ASColor::WHITE);
+        else displayRidge (painter, ASColor::WHITE);
+        rdetector.clear ();
+      }
+    }
+  }
 }
 
 
@@ -1578,6 +1636,16 @@ void ILSDDetectionWidget::drawTiles (ASPainter& painter)
 }
 
 
+void ILSDDetectionWidget::drawGroundTruth (ASPainter &painter)
+{
+  painter.setPen (ASPen (ASColor::WHITE, THIN_PEN, ASPenStyle::SolidLine,
+                        ASPenCapStyle::RoundCap, ASPenJoinStyle::RoundJoin));
+  for (int j = 0; j < height; j++)
+    for (int i = 0; i < width; i++)
+      if (gtImage->hasBlue (i,j)) painter.drawPoint (ASCanvasPos (i, j));
+}
+
+
 void ILSDDetectionWidget::incBlackLevel (int val)
 {
   setBlackLevel (blevel + 5 * val);
@@ -1676,6 +1744,8 @@ void ILSDDetectionWidget::displayDetectionResult ()
       it ++;
     }
   }
+
+  if (disp_gt) drawGroundTruth (painter);
 
   if (disp_detection)
   {
@@ -1861,30 +1931,24 @@ void ILSDDetectionWidget::displayConnectedTrack (ASPainter& painter,
       Pt2i pt0, pt1;
       int miss = 0;
       float slast = 0.f, elast = 0.f;
-      bool disp_on = true;
       bool rev = ct->isScanReversed (0);
-      for (int num = 0; disp_on && num <= maxi; num++)
-      {
-        disp_on = displayConnectedPlateau (painter, ct, num, rev,
-                                           pt0, pt1, miss, slast, elast,
-                                           pp1, p12, l12);
-      }
+      for (int num = 0; num <= maxi; num++)
+        displayConnectedPlateau (painter, ct, num, rev,
+                                 pt0, pt1, miss, slast, elast,
+                                 pp1, p12, l12);
       miss = 0;
       slast = 0.f;
       elast = 0.f;
-      disp_on = true;
-      for (int num = 0; disp_on && num >= mini; num--)
-      {
-        disp_on = displayConnectedPlateau (painter, ct, num, rev,
-                                           pt0, pt1, miss, slast, elast,
-                                           pp1, p12, l12);
-      }
+      for (int num = 0; num >= mini; num--)
+        displayConnectedPlateau (painter, ct, num, rev,
+                                 pt0, pt1, miss, slast, elast,
+                                 pp1, p12, l12);
     }
   }
 }
 
 
-bool ILSDDetectionWidget::displayConnectedPlateau (ASPainter& painter,
+void ILSDDetectionWidget::displayConnectedPlateau (ASPainter& painter,
                                   CarriageTrack* ct, int num, bool rev,
                                   Pt2i& pt0, Pt2i& pt1,
                                   int& miss, float& slast, float& elast,
@@ -1983,7 +2047,6 @@ bool ILSDDetectionWidget::displayConnectedPlateau (ASPainter& painter,
     elast = eint;
   }
   else miss ++;
-  return true;
 }
 
 

@@ -291,6 +291,13 @@ Volume measures between selected profiles can also be extracted using
 "Start measure" and "Stop measure" buttons. The measured structure section
 is displayed with blue marks on each view.
 
+### Editing a ground truth
+
+Structure ground truth may be loaded, displayed, enriched with the new detected
+structures, then saved. In this release, the input ground truth binary map
+should be stored in "resources/gt/gt_in.png", and the output map will be
+saved in "resources/gt/gt_in.png" (the former file will be lost).
+
 ## MOUSE CONTROLS
 
 Click and drag using left mouse button to draw an input stroke on DTM map.
@@ -308,11 +315,13 @@ All the commands can also be accessed via the menu system.
 |-----|-------------|
 | Arrows | Shifts DTM map |
 | Page up/down | Zooms DTM map |
+| Ctrl-G | Load or saves a ground truth map |
 | Ctrl-M | Toggles extraction mode (ridge -> hollow -> track -> none) |
 | Ctrl-V | Switches DTM view shading (hill-shading or slope-shading) |
 | a | Adds detected structure to selection list |
 | A | Displays selection list |
 | b(B) | Sets light intensity for hill-shading |
+| g | Adds the detected structure to the displayed ground truth |
 | v(V) | Sets light direction for hill-shading |
 | & | Switches on/off cross profile view |
 | ) | Switches on/off longitudinal profile view |

@@ -113,6 +113,11 @@ public:
 	void copyTo(ASImage& target) const;
 
 	/**
+	 * @brief input image data from custom png file
+	*/
+	bool load(const char* newFilePath);
+
+	/**
 	 * @brief output image data to custom png file (directory must exist)
 	*/
 	bool save(const char* newFilePath, const char* fileFormat = "") const;
@@ -151,6 +156,11 @@ public:
 	 * @brief transform viewport position to texture coordinates
 	*/
 	bool viewportToTexture(GLWindow* drawWindow, const ASCanvasPos& viewportPosition, ASCanvasPos& result) const;
+
+	/**
+	 * @brief checks if blue component is not null
+	*/
+	bool hasBlue(const uint32_t& posX, const uint32_t& posY) const;
 
 private:
 
