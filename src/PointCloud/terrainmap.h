@@ -231,14 +231,16 @@ public:
    * The compete ground map should be built using create () when all files
    *   have been loaded.
    * @param name DTM file name (ASC format).
+   * @param verb Warning display modality.
    */
-  bool addDtmFile (const std::string &name);
+  bool addDtmFile (const std::string &name, bool verb = false);
 
   /**
    * \brief Creates the normal map from available DTM (ASC) files.
    * Returns whether creation succeeded.
+   * @param verb Warning display modality.
    */
-  bool create ();
+  bool createMapFromDtm (bool verb = false);
 
   /**
    * \brief Loads normal map information from a DTM file.

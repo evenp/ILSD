@@ -1655,7 +1655,7 @@ void ILSDMenu::importDTMTiles (const std::vector<std::string>& paths)
       }
     }
   }
-  if (! mappy.create ())
+  if (! mappy.createMapFromDtm ())
   {
     std::cout << "DTM fusion failed" << std::endl;
     return;

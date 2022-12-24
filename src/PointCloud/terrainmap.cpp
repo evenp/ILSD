@@ -591,12 +591,12 @@ void TerrainMap::saveFirstNormalMap (const std::string &name) const
 }
 
 
-bool TerrainMap::addDtmFile (const std::string &name)
+bool TerrainMap::addDtmFile (const std::string &name, bool verb)
 {
   std::ifstream dtmf (name.c_str (), std::ios::in);
   if (! dtmf.is_open ())
   {
-    std::cout << "File " << name << " can't be opened" << std::endl;
+    if (verb) std::cout << "File " << name << " can't be opened" << std::endl;
     return false;
   }
   char val[20];
@@ -697,7 +697,7 @@ bool TerrainMap::addDtmFile (const std::string &name)
 }
 
 
-bool TerrainMap::create ()
+bool TerrainMap::createMapFromDtm (bool verb)
 {
   double *hval = new double[iwidth * iheight];
   for (int i = 0; i < iwidth * iheight; i++) hval[i] = no_data;
@@ -708,7 +708,7 @@ bool TerrainMap::create ()
   {
     int dx = it->x () * twidth;
     int dy = (iheight / theight - 1 - it->y ()) * theight;
-    std::cout << "Opening " << *itn << std::endl;
+    if (verb) std::cout << "Opening " << *itn << std::endl;
     std::ifstream dtmf (itn->c_str (), std::ios::in);
     if (! dtmf.is_open ()) return false;
     char val[15];
