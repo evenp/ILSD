@@ -591,7 +591,7 @@ void TerrainMap::saveFirstNormalMap (const std::string &name) const
 }
 
 
-bool TerrainMap::addDtmFile (const std::string &name, bool verb)
+bool TerrainMap::addDtmFile (const std::string &name, bool verb, bool grid_ref)
 {
   std::ifstream dtmf (name.c_str (), std::ios::in);
   if (! dtmf.is_open ())
@@ -599,15 +599,17 @@ bool TerrainMap::addDtmFile (const std::string &name, bool verb)
     if (verb) std::cout << "File " << name << " can't be opened" << std::endl;
     return false;
   }
-  char val[20];
+  char val[100];  // IGN
   int width = 0, height = 0;
   double xllc = 0., yllc = 0., nodata = 0.;
   float csize = 0.0f;
 
   dtmf >> val;
   dtmf >> width;
+  if (grid_ref) width --;
   dtmf >> val;
   dtmf >> height;
+  if (grid_ref) height --;
   dtmf >> val;
   dtmf >> xllc;
   xllc = (double) ((int) (xllc + 0.5f));
@@ -697,10 +699,11 @@ bool TerrainMap::addDtmFile (const std::string &name, bool verb)
 }
 
 
-bool TerrainMap::createMapFromDtm (bool verb)
+bool TerrainMap::createMapFromDtm (bool verb, bool grid_ref)
 {
-  double *hval = new double[iwidth * iheight];
-  for (int i = 0; i < iwidth * iheight; i++) hval[i] = no_data;
+  int isz = (grid_ref ? (iwidth + 1) * (iheight + 1) : iwidth * iheight);
+  double *hval = new double[isz];
+  for (int i = 0; i < isz; i++) hval[i] = no_data;
 
   std::vector<Pt2i>::iterator it = layout.begin ();
   std::vector<std::string>::iterator itn = input_files.begin ();
@@ -716,8 +719,10 @@ bool TerrainMap::createMapFromDtm (bool verb)
     for (int i = 0; i < 11; i++) dtmf >> val;
     dtmf >> nodata;
 
-    for (int j = 0; j < theight; j++)
-      for (int i = 0; i < twidth; i++)
+    int loc_th = (grid_ref ? theight + 1 : theight);
+    int loc_tw = (grid_ref ? twidth + 1 : twidth);
+    for (int j = 0; j < loc_th; j++)
+      for (int i = 0; i < loc_tw; i++)
       {
         dtmf >> hv;
         hval[(dy + j) * iwidth + dx + i] = (hv == nodata ? no_data : hv);
@@ -731,30 +736,49 @@ bool TerrainMap::createMapFromDtm (bool verb)
   nmap = new Pt3f[iwidth * iheight];
   Pt3f *nval = nmap;
   double dhx, dhy;
-  for (int j = 0; j < iheight; j++)
+  if (grid_ref)
   {
-    for (int i = 0; i < iwidth; i++)
+    for (int j = 0; j < iheight; j++)
     {
-      if (j == iheight - 1)
-        dhy = (hval[j * iwidth + i] - hval[(j-1) * iwidth + i])
-              * 2 * RELIEF_AMPLI;
-      else if (j == 0)
+      for (int i = 0; i < iwidth; i++)
+      {
         dhy = (hval[(j+1) * iwidth + i] - hval[j * iwidth + i])
-              * 2 * RELIEF_AMPLI;
-      else dhy = (hval[(j+1) * iwidth + i] - hval[(j-1) * iwidth + i])
-                 * RELIEF_AMPLI;
-      if (i == iwidth - 1)
-        dhx = (hval[j * iwidth + i] - hval[j * iwidth + i-1])
-              * 2 * RELIEF_AMPLI;
-      else if (i == 0)
-        dhx = (hval[j * iwidth + i+1] - hval[j * iwidth + i])
-              * 2 * RELIEF_AMPLI;
-      else dhx = (hval[j * iwidth + i+1] - hval[j * iwidth + i-1])
-                 * RELIEF_AMPLI;
+                   * RELIEF_AMPLI;
+        dhx = (hval[j * iwidth + i + 1] - hval[j * iwidth + i])
+                   * RELIEF_AMPLI;
+        nval->set (- (float) dhx, - (float) dhy, 1.0f);
+        nval->normalize ();
+        nval++;
+      }
+    }
+  }
+  else
+  {
+    for (int j = 0; j < iheight; j++)
+    {
+      for (int i = 0; i < iwidth; i++)
+      {
+        if (j == iheight - 1)
+          dhy = (hval[j * iwidth + i] - hval[(j-1) * iwidth + i])
+                * 2 * RELIEF_AMPLI;
+        else if (j == 0)
+          dhy = (hval[(j+1) * iwidth + i] - hval[j * iwidth + i])
+                * 2 * RELIEF_AMPLI;
+        else dhy = (hval[(j+1) * iwidth + i] - hval[(j-1) * iwidth + i])
+                   * RELIEF_AMPLI;
+        if (i == iwidth - 1)
+          dhx = (hval[j * iwidth + i] - hval[j * iwidth + i-1])
+                * 2 * RELIEF_AMPLI;
+        else if (i == 0)
+          dhx = (hval[j * iwidth + i+1] - hval[j * iwidth + i])
+                * 2 * RELIEF_AMPLI;
+        else dhx = (hval[j * iwidth + i+1] - hval[j * iwidth + i-1])
+                   * RELIEF_AMPLI;
 
-      nval->set (- (float) dhx, - (float) dhy, 1.0f);
-      nval->normalize ();
-      nval++;
+        nval->set (- (float) dhx, - (float) dhy, 1.0f);
+        nval->normalize ();
+        nval++;
+      }
     }
   }
   delete [] hval;

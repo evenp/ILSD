@@ -228,19 +228,24 @@ public:
    * \brief Adds and arranges a new DTM file.
    * Returns whether adding succeeded.
    * The new file is localized wrt already entered files.
-   * The compete ground map should be built using create () when all files
-   *   have been loaded.
+   * The complete ground map should be built using createMapFromDtm ()
+   *   when all files have been loaded.
    * @param name DTM file name (ASC format).
-   * @param verb Warning display modality.
+   * @param verb Warning display modality (optional).
+   * @param grid_ref True if the input file is grid-referenced (optional) :
+   *    standard is pixel-center-referenced
    */
-  bool addDtmFile (const std::string &name, bool verb = false);
+  bool addDtmFile (const std::string &name,
+                   bool verb = false, bool grid_ref = false);
 
   /**
    * \brief Creates the normal map from available DTM (ASC) files.
    * Returns whether creation succeeded.
    * @param verb Warning display modality.
+   * @param grid_ref True if the input file is grid-referenced (optional) :
+   *    standard is pixel-center-referenced
    */
-  bool createMapFromDtm (bool verb = false);
+  bool createMapFromDtm (bool verb = false, bool grid_ref = false);
 
   /**
    * \brief Loads normal map information from a DTM file.
