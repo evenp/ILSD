@@ -52,6 +52,7 @@ FileExplorer::FileExplorer(GLWindow* context, const std::string& windowName, con
 		currentFilter = (int)extensionFilters.size() - 1;
 	}
 	withNoSel = withNoSelection;
+	fixedDir = false;
 }
 
 FileExplorer::FileExplorer(GLWindow* context, const std::string& windowName, const std::string& defaultPath, const std::vector<std::string>& inExtensionFilters, const std::vector<std::string>& alreadySelected, bool withNoSelection, int itemCount)
@@ -75,7 +76,13 @@ FileExplorer::FileExplorer(GLWindow* context, const std::string& windowName, con
 	}
 	withNoSel = withNoSelection;
 	this->alreadySelected = alreadySelected;
+        fixedDir = false;
 	pruneSelected = true;
+}
+
+void FileExplorer::BlockPathSelection()
+{
+	fixedDir = true;
 }
 
 void FileExplorer::DrawContent(GLWindow* windowContext)
@@ -108,13 +115,16 @@ void FileExplorer::DrawContent(GLWindow* windowContext)
 		ImGui::SetColumnWidth(0, windowSize);
 		bSetColumnWidth = true;
 	}
-	/**  default path */
 
-	if (ImGui::Button("project", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-		SetCurrentPath(".");
-	}	
-	if (ImGui::Button("root", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-		SetCurrentPath("/");
+	/**  default path */
+	if (! fixedDir)
+	{
+		if (ImGui::Button("project", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+			SetCurrentPath(".");
+		}	
+		if (ImGui::Button("root", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+			SetCurrentPath("/");
+		}
 	}
 	ImGui::NextColumn();
 

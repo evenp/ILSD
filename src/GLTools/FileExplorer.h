@@ -42,6 +42,8 @@ public:
 
 	FileExplorer(GLWindow* context, const std::string& windowName, const std::string& defaultPath, const std::vector<std::string>& inExtensionFilters, const std::vector<std::string>& alreadySelected, bool withNoSelection = false, int itemCount = 1);
 
+	void BlockPathSelection();
+
 	OnApplyExplorerEvent OnApplyPath;
 	CancelExplorerEvent OnCancelExplorer;
 	OnDestroyEvent OnDestroy;
@@ -74,6 +76,7 @@ private:
 
 	bool bSetColumnWidth = false;
 	bool withNoSel = false;
+	bool fixedDir = false;
 	bool noSelection = false;
         bool pruneSelected = false;
 

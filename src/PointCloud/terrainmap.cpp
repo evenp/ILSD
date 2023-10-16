@@ -743,9 +743,9 @@ bool TerrainMap::createMapFromDtm (bool verb, bool grid_ref)
       for (int i = 0; i < iwidth; i++)
       {
         dhy = (hval[(j+1) * iwidth + i] - hval[j * iwidth + i])
-                   * RELIEF_AMPLI;
+                   * 2 * RELIEF_AMPLI;
         dhx = (hval[j * iwidth + i + 1] - hval[j * iwidth + i])
-                   * RELIEF_AMPLI;
+                   * 2 * RELIEF_AMPLI;
         nval->set (- (float) dhx, - (float) dhy, 1.0f);
         nval->normalize ();
         nval++;

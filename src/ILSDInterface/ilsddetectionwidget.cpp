@@ -35,7 +35,6 @@
 #include "glWindow.h"
 #include "asPainter.h"
 #include "IniLoader.h"
-#include "FileExplorer.h"
 #include "SaveFileWidget.h"
 #include "shapefil.h" // SHP
 
@@ -51,7 +50,7 @@
 #define TILE_NAME_MAX_LENGTH 200
 
 
-const std::string ILSDDetectionWidget::VERSION = "1.1.10";
+const std::string ILSDDetectionWidget::VERSION = "1.1.11";
 
 const int ILSDDetectionWidget::MODE_NONE = 0;
 const int ILSDDetectionWidget::MODE_CTRACK = 1;

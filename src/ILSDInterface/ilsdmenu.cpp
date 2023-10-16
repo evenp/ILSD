@@ -131,16 +131,17 @@ bool ILSDMenu::drawFileMenu (GLWindow* parent)
       det_widget->disableKeys ();
       FileExplorer* explo = new FileExplorer (parent, "Select tiles",
                                               NVM_DIR, { "nvm" }, false, 0);
+      explo->BlockPathSelection ();
       explo->OnApplyPath.Add (det_widget, &ILSDDetectionWidget::selectTiles);
       explo->OnCancelExplorer.Add (det_widget, &ILSDDetectionWidget::noAction);
       explo->OnDestroy.Add (det_widget, &ILSDDetectionWidget::enableKeys);
     }
-    if (ImGui::MenuItem ("Import tile"))
+    if (ImGui::MenuItem ("Import XYZ/ASC tile"))
     {
       import_parent = parent;
       det_widget->disableKeys ();
-      FileExplorer* explo = new FileExplorer (parent,
-            				      "Select XYZ point tile", ".");
+      FileExplorer* explo = new FileExplorer (parent, "Select XYZ point tile",
+                                              ".");
       explo->OnApplyPath.Add (this, &ILSDMenu::importPointTile);
       explo->OnCancelExplorer.Add (det_widget, &ILSDDetectionWidget::noAction);
       explo->OnDestroy.Add (det_widget, &ILSDDetectionWidget::enableKeys);
