@@ -90,6 +90,16 @@ public:
     return (yp > p.yp || (yp == p.yp && xp > p.xp)); }
 
   /**
+   * \brief Returns the found flag. ???
+   */
+  inline bool found () const { return (nb != 0); }
+
+  /**
+   * \brief Returns the found flag. ???
+   */
+  inline bool refound () const { return (nb > 1); }
+
+  /**
    * \brief Returns the point nth coordinate value.
    * @param n Coordinate index.
    */
@@ -130,6 +140,12 @@ public:
    */
   inline bool horizontal (const Pt3i &p) const { return (p.zp == zp); }
 
+  /**
+   * \brief Marks as found if x-y equivalent to a given point.
+   * @param p Given point.
+   */
+  bool find (Pt3i p);
+
 
 protected:
 
@@ -139,6 +155,8 @@ protected:
   int yp;
   /** Point Z-coordinate value. */
   int zp;
+  /** Number of clones. */
+  int nb;
 
 };
 #endif
