@@ -297,6 +297,7 @@ void ILSDCTrackCrossProfile::paintAlignedScans ()
 void ILSDCTrackCrossProfile::paintProfile ()
 {
   ASPainter painter (structImage);
+  float zratio = sratio * ctrl->zRatio ();
   int altiShift = alti_area_margin - ctrl->profileShift ();
   int refh = w_height / 2;
   int bbl = alti_area_margin - altiShift;
@@ -318,9 +319,9 @@ void ILSDCTrackCrossProfile::paintProfile ()
     float end = pl->referenceEnd ();
     float height = pl->referenceHeight ();
     height -= href;
-    ilow = (int) (height * sratio + (height < 0.0f ? -0.5f : 0.5f));
+    ilow = (int) (height * zratio + (height < 0.0f ? -0.5f : 0.5f));
     height += det->model()->thicknessTolerance ();
-    ihigh = (int) (height * sratio + (height < 0.0f ? -0.5f : 0.5f));
+    ihigh = (int) (height * zratio + (height < 0.0f ? -0.5f : 0.5f));
     istart = (int) ((start + profshift) * sratio + 0.5f);
     iend = (int) ((end + profshift) * sratio + 0.5f);
     if (ctrl->isRefDisplay () && ctrl->scan () != 0)
@@ -336,118 +337,86 @@ void ILSDCTrackCrossProfile::paintProfile ()
       }
     }
 
-    // Draws detected plateau
-    if (ctrl->scan () != 0)
+    if (ctrl->isDetectionDisplay ())
     {
-      Pt2f dsss = pl->getDSSstart ();
-      Pt2f dsse = pl->getDSSend ();
-      float dssw = pl->getDSSwidth () / 2;
-      int dss1 = (int) ((dsss.x() + profshift) * sratio + 0.5);
-      int dss2 = (int) ((dsse.x() + profshift) * sratio + 0.5);
-      int dssh1 = (int) ((dsss.y() + dssw - href) * sratio + 0.5);
-      int dssh2 = (int) ((dsss.y() - dssw - href) * sratio + 0.5);
-      int dssh3 = (int) ((dsse.y() - dssw - href) * sratio + 0.5);
-      int dssh4 = (int) ((dsse.y() + dssw - href) * sratio + 0.5);
-      painter.setPen (ASPen (ASColor::GRAY, 2));
-      clipLine (painter, altiShift + dss1, refh - dssh1,
-                altiShift + dss1, refh - dssh2, abbl, abbd, abbr, abbu);
-      clipLine (painter, altiShift + dss1, refh - dssh2,
-                altiShift + dss2, refh - dssh3, abbl, abbd, abbr, abbu);
-      clipLine (painter, altiShift + dss2, refh - dssh3,
-                altiShift + dss2, refh - dssh4, abbl, abbd, abbr, abbu);
-      clipLine (painter, altiShift + dss2, refh - dssh4,
-                altiShift + dss1, refh - dssh1, abbl, abbd, abbr, abbu);
-    }
-    else
-    {
-      start = pl->internalStart ();
-      end = pl->internalEnd ();
-      height = pl->getMinHeight () - href;
-      ilow = (int) (height * sratio + (height < 0.0f ? -0.5f : 0.5f));
-      height += det->model()->thicknessTolerance ();
-      ihigh = (int) (height * sratio + (height < 0.0f ? -0.5f : 0.5f));
-      istart = (int) ((start + profshift) * sratio + 0.5);
-      iend = (int) ((end + profshift) * sratio + 0.5);
-      painter.setPen (ASPen (ASColor::GRAY, 2));
-      if (istart <= bbr && iend >= bbl && ihigh >= bbd && ilow <= bbu)
+      // Draws detected plateau
+      if (ctrl->scan () != 0)
       {
-        if (istart < bbl) istart = bbl;
-        if (iend > bbr) iend = bbr;
-        if (ihigh > bbu) ihigh = bbu;
-        if (ilow < bbd) ilow = bbd;
-        painter.drawRect (altiShift + istart, refh - ihigh,
-                          iend - istart, ihigh - ilow);
+        Pt2f dsss = pl->getDSSstart ();
+        Pt2f dsse = pl->getDSSend ();
+        float dssw = pl->getDSSwidth () / 2;
+        int dss1 = (int) ((dsss.x() + profshift) * sratio + 0.5);
+        int dss2 = (int) ((dsse.x() + profshift) * sratio + 0.5);
+        int dssh1 = (int) ((dsss.y() + dssw - href) * zratio + 0.5);
+        int dssh2 = (int) ((dsss.y() - dssw - href) * zratio + 0.5);
+        int dssh3 = (int) ((dsse.y() - dssw - href) * zratio + 0.5);
+        int dssh4 = (int) ((dsse.y() + dssw - href) * zratio + 0.5);
+        painter.setPen (ASPen (ASColor::GRAY, 2));
+        clipLine (painter, altiShift + dss1, refh - dssh1,
+                  altiShift + dss1, refh - dssh2, abbl, abbd, abbr, abbu);
+        clipLine (painter, altiShift + dss1, refh - dssh2,
+                  altiShift + dss2, refh - dssh3, abbl, abbd, abbr, abbu);
+        clipLine (painter, altiShift + dss2, refh - dssh3,
+                  altiShift + dss2, refh - dssh4, abbl, abbd, abbr, abbu);
+        clipLine (painter, altiShift + dss2, refh - dssh4,
+                  altiShift + dss1, refh - dssh1, abbl, abbd, abbr, abbu);
       }
-    }
-
-    // Draws external bounds
-    start = pl->externalStart ();
-    end = pl->externalEnd ();
-    istart = (int) ((start + profshift) * sratio + 0.5);
-    iend = (int) ((end + profshift) * sratio + 0.5);
-    height += det->model()->thicknessTolerance ();
-    ihigh = (int) (height * sratio + (height < 0.0f ? -0.5f : 0.5f));
-    height -= 3 * det->model()->thicknessTolerance ();
-    ilow = (int) (height * sratio + (height < 0.0f ? -0.5f : 0.5f));
-    if (istart <= bbr && istart >= bbl && ihigh >= bbd && ilow <= bbu)
-    {
-      if (ihigh > bbu) ihigh = bbu;
-      if (ilow < bbd) ilow = bbd;
-      painter.drawLine (altiShift + istart, refh - ihigh,
-                        altiShift + istart, refh - ilow);
-    }
-    if (iend <= bbr && iend >= bbl && ihigh >= bbd && ilow <= bbu)
-    {
-      if (ihigh > bbu) ihigh = bbu;
-      if (ilow < bbd) ilow = bbd;
-      painter.drawLine (altiShift + iend, refh - ihigh,
-                        altiShift + iend, refh - ilow);
-    }
-
-    // Draws estimated plateau
-    if (ctrl->isEstimDisplay ())
-    {
-      start = pl->estimatedStart ();
-      end = pl->estimatedEnd ();
-      istart = (int) ((start + profshift) * sratio + 0.5f);
-      iend = (int) ((end + profshift) * sratio + 0.5f);
-      int posy = refh - (ihigh + ilow) / 2
-                 + (ctrl->scan () > 0 ? -POS_EST : POS_EST);
-      painter.setPen (ASPen (ASColor::GREEN, 2));
-      if (istart <= bbr && iend >= bbl
-          && posy >= bbd + refh && posy <= bbu + refh)
+      else
       {
-        if (istart < bbl) istart = bbl;
-        if (iend > bbr) iend = bbr;
-        painter.drawLine (altiShift + istart, posy, altiShift + iend, posy);
-      }
-      if (ctrl->scan () == 0)
-      {
-        posy -= 2 * POS_EST;
-        if (istart <= bbr && iend >= bbl
-            && posy >= bbd + refh && posy <= bbu + refh)
+        start = pl->internalStart ();
+        end = pl->internalEnd ();
+        height = pl->getMinHeight () - href;
+        ilow = (int) (height * zratio + (height < 0.0f ? -0.5f : 0.5f));
+        height += det->model()->thicknessTolerance ();
+        ihigh = (int) (height * zratio + (height < 0.0f ? -0.5f : 0.5f));
+        istart = (int) ((start + profshift) * sratio + 0.5);
+        iend = (int) ((end + profshift) * sratio + 0.5);
+        painter.setPen (ASPen (ASColor::GRAY, 2));
+        if (istart <= bbr && iend >= bbl && ihigh >= bbd && ilow <= bbu)
         {
           if (istart < bbl) istart = bbl;
           if (iend > bbr) iend = bbr;
-          painter.drawLine (altiShift + istart, posy,
-                            altiShift + iend, posy);
+          if (ihigh > bbu) ihigh = bbu;
+          if (ilow < bbd) ilow = bbd;
+          painter.drawRect (altiShift + istart, refh - ihigh,
+                            iend - istart, ihigh - ilow);
         }
       }
-    }
 
-    // Draws next predicted plateau
-    if (ctrl->isPredDisplay ())
-    {
-      Plateau* pln = ct->plateau (ctrl->scan () + (ctrl->scan () < 0 ? -1 : 1));
-      if (pln != NULL)
+      // Draws external bounds
+      start = pl->externalStart ();
+      end = pl->externalEnd ();
+      istart = (int) ((start + profshift) * sratio + 0.5);
+      iend = (int) ((end + profshift) * sratio + 0.5);
+      height += det->model()->thicknessTolerance ();
+      ihigh = (int) (height * zratio + (height < 0.0f ? -0.5f : 0.5f));
+      height -= 3 * det->model()->thicknessTolerance ();
+      ilow = (int) (height * zratio + (height < 0.0f ? -0.5f : 0.5f));
+      if (istart <= bbr && istart >= bbl && ihigh >= bbd && ilow <= bbu)
       {
-        start = pln->referenceStart ();
-        end = pln->referenceEnd ();
+        if (ihigh > bbu) ihigh = bbu;
+        if (ilow < bbd) ilow = bbd;
+        painter.drawLine (altiShift + istart, refh - ihigh,
+                          altiShift + istart, refh - ilow);
+      }
+      if (iend <= bbr && iend >= bbl && ihigh >= bbd && ilow <= bbu)
+      {
+        if (ihigh > bbu) ihigh = bbu;
+        if (ilow < bbd) ilow = bbd;
+        painter.drawLine (altiShift + iend, refh - ihigh,
+                          altiShift + iend, refh - ilow);
+      }
+
+      // Draws estimated plateau
+      if (ctrl->isEstimDisplay ())
+      {
+        start = pl->estimatedStart ();
+        end = pl->estimatedEnd ();
         istart = (int) ((start + profshift) * sratio + 0.5f);
         iend = (int) ((end + profshift) * sratio + 0.5f);
         int posy = refh - (ihigh + ilow) / 2
-                   + (ctrl->scan () > 0 ? - POS_PRED : POS_PRED);
-        painter.setPen (ASPen (ASColor::RED, 2));
+                   + (ctrl->scan () > 0 ? -POS_EST : POS_EST);
+        painter.setPen (ASPen (ASColor::GREEN, 2));
         if (istart <= bbr && iend >= bbl
             && posy >= bbd + refh && posy <= bbu + refh)
         {
@@ -457,7 +426,7 @@ void ILSDCTrackCrossProfile::paintProfile ()
         }
         if (ctrl->scan () == 0)
         {
-          posy -= 2 * POS_PRED;
+          posy -= 2 * POS_EST;
           if (istart <= bbr && iend >= bbl
               && posy >= bbd + refh && posy <= bbu + refh)
           {
@@ -468,22 +437,58 @@ void ILSDCTrackCrossProfile::paintProfile ()
           }
         }
       }
-    }
 
-    // Draws direction
-    if (ctrl->isDirDisplay () && pl->reliable ())
-    {
-      float dev = pl->estimatedDeviation ();
-      float cs = det->getCellSize ();
-      int idev = (int) (LG_DIR * dev / cs + (dev < 0 ? -0.5f : 0.5f));
-      if ((dev < 0.0f ? -dev : dev) > cs)
-        painter.setPen (ASPen (ASColor::RED, 2));
-      clipLine (painter, altiShift + alti_area_width / 2,
-                refh - (ihigh + ilow) / 2,
-                altiShift + alti_area_width / 2 + idev,
-                refh + (ctrl->scan () > 0 ?
-                  - LG_DIR : LG_DIR) - (ihigh + ilow) / 2,
-                abbl, abbd, abbr, abbu);
+      // Draws next predicted plateau
+      if (ctrl->isPredDisplay ())
+      {
+        Plateau* pln = ct->plateau (
+                              ctrl->scan () + (ctrl->scan () < 0 ? -1 : 1));
+        if (pln != NULL)
+        {
+          start = pln->referenceStart ();
+          end = pln->referenceEnd ();
+          istart = (int) ((start + profshift) * sratio + 0.5f);
+          iend = (int) ((end + profshift) * sratio + 0.5f);
+          int posy = refh - (ihigh + ilow) / 2
+                     + (ctrl->scan () > 0 ? - POS_PRED : POS_PRED);
+          painter.setPen (ASPen (ASColor::RED, 2));
+          if (istart <= bbr && iend >= bbl
+              && posy >= bbd + refh && posy <= bbu + refh)
+          {
+            if (istart < bbl) istart = bbl;
+            if (iend > bbr) iend = bbr;
+            painter.drawLine (altiShift + istart, posy, altiShift + iend, posy);
+          }
+          if (ctrl->scan () == 0)
+          {
+            posy -= 2 * POS_PRED;
+            if (istart <= bbr && iend >= bbl
+                && posy >= bbd + refh && posy <= bbu + refh)
+            {
+              if (istart < bbl) istart = bbl;
+              if (iend > bbr) iend = bbr;
+              painter.drawLine (altiShift + istart, posy,
+                                altiShift + iend, posy);
+            }
+          }
+        }
+      }
+
+      // Draws direction
+      if (ctrl->isDirDisplay () && pl->reliable ())
+      {
+        float dev = pl->estimatedDeviation ();
+        float cs = det->getCellSize ();
+        int idev = (int) (LG_DIR * dev / cs + (dev < 0 ? -0.5f : 0.5f));
+        if ((dev < 0.0f ? -dev : dev) > cs)
+          painter.setPen (ASPen (ASColor::RED, 2));
+        clipLine (painter, altiShift + alti_area_width / 2,
+                  refh - (ihigh + ilow) / 2,
+                  altiShift + alti_area_width / 2 + idev,
+                  refh + (ctrl->scan () > 0 ?
+                    - LG_DIR : LG_DIR) - (ihigh + ilow) / 2,
+                  abbl, abbd, abbr, abbu);
+      }
     }
   }
 

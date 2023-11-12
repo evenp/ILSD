@@ -54,6 +54,9 @@ ILSDCrossProfileItem::ILSDCrossProfileItem (ILSDItemControl *item_ctrl)
   profshift = 0.0f;
   sratio = 1.0f;
   scale = 1;
+  zcale = 1;
+  scalength = 0;
+  zcalength = 0;
   reversed = false;
   ctrl->resetMeasure ();
 
@@ -521,12 +524,14 @@ void ILSDCrossProfileItem::paintMeasureSection ()
 void ILSDCrossProfileItem::paintProfile ()
 {
   ASPainter painter (structImage);
+  int zr = ctrl->zRatio ();
 
   // Draws metric reference
   int meas = scale;
   while (meas > 6) meas /= 10;
   bool pair = (meas == 1);
-  while (alti_area_width > 10 * scale * sratio)
+  // while (alti_area_width > 10 * scale * sratio) // with hysteresis
+  while (9 * alti_area_width > 10 * scale * sratio) // no hysteresis
   {
     scale *= (pair ? 5 : 2);
     pair = ! pair;
@@ -536,19 +541,43 @@ void ILSDCrossProfileItem::paintProfile ()
     scale /= (pair ? 2 : 5);
     pair = ! pair;
   }
-  int scalength = (int) (scale * sratio / 2 + 0.5);
+  scalength = (int) (scale * sratio + 0.5);
   painter.setPen (ASPen (ASColor::BLACK, 2));
-  painter.drawLine (alti_area_width / 2 - scalength, w_height - 2,
-                    alti_area_width / 2 + scalength, w_height - 2);
-  painter.drawLine (alti_area_width / 2 - scalength, w_height - 2,
-                    alti_area_width / 2 - scalength, w_height - 6);
-  painter.drawLine (alti_area_width / 2 + scalength, w_height - 2,
-                    alti_area_width / 2 + scalength, w_height - 6);
+  painter.drawLine (12, w_height - 2, 12 + scalength, w_height - 2);
+  if (zr == 1) painter.drawLine (12, w_height - 2, 12, w_height - 6);
+  painter.drawLine (12 + scalength, w_height - 2, 12 + scalength, w_height - 6);
+
+  // Draws Z metric reference when a Z-ratio is applied
+  if (zr != 1)
+  {
+    float zratio = sratio * zr;
+    meas = zcale;
+    while (meas > 6) meas /= 10;
+    pair = (meas == 1);
+    // while (w_height / 2 > 10 * zcale * zratio)  // with hysteresis
+    while (9 * (w_height / 2) > 1 * zcale * zratio)  // no hysteresis
+    {
+      zcale *= (pair ? 5 : 2);
+      pair = ! pair;
+    }
+    while (zcale > 1 && 9 * (w_height / 2) < 1 * zcale * zratio)
+    {
+      zcale /= (pair ? 2 : 5);
+      pair = ! pair;
+    }
+    zcalength = (int) ((zcale * zratio) * 0.1 + 0.5);
+    painter.drawLine (12, w_height - 2, 12, w_height - 2 - zcalength);
+    painter.drawLine (12, w_height - 2 - zcalength,
+                       16, w_height - 2 - zcalength);
+  }
 
   // Draws altimetric reference bar
-  painter.setPen (ASPen (ctrl->isStaticHeight () ?
-                         ASColor::BLACK : ASColor::GRAY, 1));
-  painter.drawLine (0, w_height / 2, alti_area_width, w_height / 2);
+  if (ctrl->isAltiDisplay ())
+  {
+    painter.setPen (ASPen (ctrl->isStaticHeight () ?
+                           ASColor::BLACK : ASColor::GRAY, 1));
+    painter.drawLine (0, w_height / 2, alti_area_width, w_height / 2);
+  }
 
   // Draws profile points
   int altiShift = alti_area_margin - ctrl->profileShift ();
@@ -560,7 +589,7 @@ void ILSDCrossProfileItem::paintProfile ()
     while (pit != ppts->end ())
     {
       int x = altiShift + (int) ((pit->x () + profshift) * sratio + 0.5);
-      int y = w_height / 2 - (int) ((pit->y () - href) * sratio + 0.5);
+      int y = w_height / 2 - (int) ((pit->y () - href) * sratio * zr + 0.5);
       if (x >= alti_area_margin && x <= alti_area_width - 2 * alti_area_margin
           && y >= alti_area_margin && y <= w_height - alti_area_margin)
         painter.drawPoint (x, y);
@@ -576,12 +605,23 @@ void ILSDCrossProfileItem::paintInfo ()
 
   /** Text of the metric reference */
   std::string valid = to_string (scale) + std::string (" m");
-  painter.drawText (alti_area_width / 2 - 20, w_height - 27, valid);
+  painter.drawText (scalength - 40, w_height - 32, valid);
+
+  if (ctrl->zRatio () != 1)
+  {
+    valid = to_string (zcale / 10);
+    if (zcale % 10 != 0) valid += "." + to_string (zcale % 10);
+    valid += std::string (" m");
+    painter.drawText (12, w_height - zcalength, valid);
+  }
 
   /** Text of the altimetric reference */
-  valid = format (href) + std::string (" m");
-  painter.drawText (alti_area_margin,
-                    w_height / 2 - 2 * alti_area_margin - 13, valid);
+  if (ctrl->isAltiDisplay ())
+  {
+    valid = format (href) + std::string (" m");
+    painter.drawText (alti_area_margin,
+                      w_height / 2 - 2 * alti_area_margin - 13, valid);
+  }
 }
 
 

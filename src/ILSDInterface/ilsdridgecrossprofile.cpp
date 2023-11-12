@@ -383,6 +383,7 @@ void ILSDRidgeCrossProfile::paintAlignedScans ()
 void ILSDRidgeCrossProfile::paintProfile ()
 {
   ASPainter painter (structImage);
+  float zratio = sratio * ctrl->zRatio ();
   int altiShift = alti_area_margin - ctrl->profileShift ();
   int refh = w_height / 2;
   int bbl = alti_area_margin - altiShift;
@@ -405,9 +406,9 @@ void ILSDRidgeCrossProfile::paintProfile ()
     float alti = bmp->referenceMassCenter().y () - href;
     float height = bmp->referenceHeight ();
     float width = bmp->referenceWidth ();
-    ilow = (int) (height * sratio + (height < 0.0f ? -0.5f : 0.5f));
+    ilow = (int) (height * zratio + (height < 0.0f ? -0.5f : 0.5f));
     iright = (int) (width * sratio + (height < 0.0f ? -0.5f : 0.5f));
-    ihigh = (int) (alti * sratio + (height < 0.0f ? -0.5f : 0.5f));
+    ihigh = (int) (alti * zratio + (height < 0.0f ? -0.5f : 0.5f));
     isum = (int) ((summit + profshift) * sratio + 0.5f);
     if (ctrl->isRefDisplay ())
     {
@@ -439,116 +440,119 @@ void ILSDRidgeCrossProfile::paintProfile ()
       }
     }
 
-    // Draws start trend
-    if (ctrl->isTemplateDisplay () && bmp->hasStartTrend ())
+    if (ctrl->isDetectionDisplay ())
     {
-      Pt2f st_start (bmp->startTrendStart ());
-      Pt2f st_end (bmp->startTrendEnd ());
-      float st_width = bmp->startTrendThickness () / 2;
-      int st_sx = (int) ((st_start.x () + profshift) * sratio + 0.5);
-      int st_ex = (int) ((st_end.x () + profshift) * sratio + 0.5); 
-      int st_sd = (int) ((st_start.y () + st_width - href) * sratio + 0.5);
-      int st_su = (int) ((st_start.y () - st_width - href) * sratio + 0.5);
-      int st_ed = (int) ((st_end.y () + st_width - href) * sratio + 0.5);
-      int st_eu = (int) ((st_end.y () - st_width - href) * sratio + 0.5);
-      painter.setPen (ASPen (ASColor::RED, 2));
-      clipLine (painter, altiShift + st_sx, refh - st_sd,
-                altiShift + st_sx, refh - st_su, abbl, abbd, abbr, abbu);
-      clipLine (painter, altiShift + st_sx, refh - st_su,
-                altiShift + st_ex, refh - st_eu, abbl, abbd, abbr, abbu);
-      clipLine (painter, altiShift + st_ex, refh - st_eu,
-                altiShift + st_ex, refh - st_ed, abbl, abbd, abbr, abbu);
-      clipLine (painter, altiShift + st_ex, refh - st_ed,
-                altiShift + st_sx, refh - st_sd, abbl, abbd, abbr, abbu);
-    }
-
-    // Draws end trend
-    if (ctrl->isTemplateDisplay () && bmp->hasEndTrend ())
-    {
-      Pt2f et_start (bmp->endTrendStart ());
-      Pt2f et_end (bmp->endTrendEnd ());
-      float et_width = bmp->endTrendThickness () / 2;
-      int et_sx = (int) ((et_start.x () + profshift) * sratio + 0.5);
-      int et_ex = (int) ((et_end.x () + profshift) * sratio + 0.5);
-      int et_sd = (int) ((et_start.y () + et_width - href) * sratio + 0.5);
-      int et_su = (int) ((et_start.y () - et_width - href) * sratio + 0.5);
-      int et_ed = (int) ((et_end.y () + et_width - href) * sratio + 0.5);
-      int et_eu = (int) ((et_end.y () - et_width - href) * sratio + 0.5);
-      painter.setPen (ASPen (ASColor::RED, 2));
-      clipLine (painter, altiShift + et_sx, refh - et_sd,
-                altiShift + et_sx, refh - et_su, abbl, abbd, abbr, abbu);
-      clipLine (painter, altiShift + et_sx, refh - et_su,
-                altiShift + et_ex, refh - et_eu, abbl, abbd, abbr, abbu);
-      clipLine (painter, altiShift + et_ex, refh - et_eu,
-                altiShift + et_ex, refh - et_ed, abbl, abbd, abbr, abbu);
-      clipLine (painter, altiShift + et_ex, refh - et_ed,
-                altiShift + et_sx, refh - et_sd, abbl, abbd, abbr, abbu);
-    }
-
-    // Draws bump
-    if (ctrl->isTemplateDisplay () && bmp->getStatus () == Bump::RES_OK)
-    {
-      Pt2f start (bmp->start ());
-      Pt2f end (bmp->end ());
-      Pt2f center (bmp->estimatedSurfCenter ());
-      Pt2f mcenter (bmp->estimatedCenter ());
-      int imx = (int) ((mcenter.x () + profshift) * sratio + 0.5f);
-      int imy = (int) ((mcenter.y () - href) * sratio + 0.5f);
-      int icx = (int) ((center.x () + profshift) * sratio + 0.5f);
-      int icy = (int) ((center.y () - href) * sratio + 0.5f);
-      int isx = (int) ((start.x () + profshift) * sratio + 0.5f);
-      int isy = (int) ((start.y () - href) * sratio + 0.5f);
-      int iex = (int) ((end.x () + profshift) * sratio + 0.5f);
-      int iey = (int) ((end.y () - href) * sratio + 0.5f);
-      painter.setPen (ASPen (ASColor::BLUE, 2));
-//      clipLine (painter, altiShift + isx, refh - isy,
-//                altiShift + iex, refh - iey, abbl, abbd, abbr, abbu);
-      clipLine (painter, altiShift + isx, refh - isy,
-                altiShift + icx, refh - icy, abbl, abbd, abbr, abbu);
-      clipLine (painter, altiShift + icx, refh - icy,
-                altiShift + iex, refh - iey, abbl, abbd, abbr, abbu);
-      clipLine (painter, altiShift + icx, refh - icy,
-                altiShift + imx, refh - imy, abbl, abbd, abbr, abbu);
-
-      // Draws baseline
-      start.set (bmp->lineStart ());
-      end.set (bmp->lineEnd ());
-      isx = (int) ((start.x () + profshift) * sratio + 0.5f);
-      isy = (int) ((start.y () - href) * sratio + 0.5f);
-      iex = (int) ((end.x () + profshift) * sratio + 0.5f);
-      iey = (int) ((end.y () - href) * sratio + 0.5f);
-      painter.setPen (ASPen (ASColor::BLUE, 2));
-      clipLine (painter, altiShift + isx, refh - isy,
-                altiShift + iex, refh - iey, abbl, abbd, abbr, abbu);
-
-      // Draws direction
-      if (ctrl->isDirDisplay () && bmp->isAccepted ())
+      // Draws start trend
+      if (ctrl->isTemplateDisplay () && bmp->hasStartTrend ())
       {
-        float dev = bmp->estimatedDeviation ();
-        float cs = det->getCellSize ();
-        int idev = (int) (LG_DIR * dev / cs + (dev < 0 ? -0.5f : 0.5f));
-        if ((dev < 0.0f ? -dev : dev) > cs)
-          painter.setPen (ASPen (ASColor::RED, 2));
-        else painter.setPen (ASPen (ASColor::GREEN, 2));
-        clipLine (painter, altiShift + isum, refh - ihigh, 
-                  altiShift + isum + idev, refh - ihigh - LG_DIR,
-                  abbl, abbd, abbr, abbu);
+        Pt2f st_start (bmp->startTrendStart ());
+        Pt2f st_end (bmp->startTrendEnd ());
+        float st_width = bmp->startTrendThickness () / 2;
+        int st_sx = (int) ((st_start.x () + profshift) * sratio + 0.5);
+        int st_ex = (int) ((st_end.x () + profshift) * sratio + 0.5); 
+        int st_sd = (int) ((st_start.y () + st_width - href) * zratio + 0.5);
+        int st_su = (int) ((st_start.y () - st_width - href) * zratio + 0.5);
+        int st_ed = (int) ((st_end.y () + st_width - href) * zratio + 0.5);
+        int st_eu = (int) ((st_end.y () - st_width - href) * zratio + 0.5);
+        painter.setPen (ASPen (ASColor::RED, 2));
+        clipLine (painter, altiShift + st_sx, refh - st_sd,
+                  altiShift + st_sx, refh - st_su, abbl, abbd, abbr, abbu);
+        clipLine (painter, altiShift + st_sx, refh - st_su,
+                  altiShift + st_ex, refh - st_eu, abbl, abbd, abbr, abbu);
+        clipLine (painter, altiShift + st_ex, refh - st_eu,
+                  altiShift + st_ex, refh - st_ed, abbl, abbd, abbr, abbu);
+        clipLine (painter, altiShift + st_ex, refh - st_ed,
+                  altiShift + st_sx, refh - st_sd, abbl, abbd, abbr, abbu);
       }
 
-      // Draws measure lower line
-      if (ctrl->isMeasuring ())
+      // Draws end trend
+      if (ctrl->isTemplateDisplay () && bmp->hasEndTrend ())
       {
-        int lisx = (int) ((bmp->measureLineStart().x () + profshift)
-                          * sratio + 0.5f);
-        int lisy = (int) ((bmp->measureLineStart().y () - href)
-                          * sratio + 0.5f);
-        int liex = (int) ((bmp->measureLineEnd().x () + profshift)
-                          * sratio + 0.5f);
-        int liey = (int) ((bmp->measureLineEnd().y () - href)
-                          * sratio + 0.5f);
-        painter.setPen (ASPen (ASColor::GREEN, 2));
-        clipLine (painter, altiShift + lisx, refh - lisy,
-                  altiShift + liex, refh - liey, abbl, abbd, abbr, abbu);
+        Pt2f et_start (bmp->endTrendStart ());
+        Pt2f et_end (bmp->endTrendEnd ());
+        float et_width = bmp->endTrendThickness () / 2;
+        int et_sx = (int) ((et_start.x () + profshift) * sratio + 0.5);
+        int et_ex = (int) ((et_end.x () + profshift) * sratio + 0.5);
+        int et_sd = (int) ((et_start.y () + et_width - href) * zratio + 0.5);
+        int et_su = (int) ((et_start.y () - et_width - href) * zratio + 0.5);
+        int et_ed = (int) ((et_end.y () + et_width - href) * zratio + 0.5);
+        int et_eu = (int) ((et_end.y () - et_width - href) * zratio + 0.5);
+        painter.setPen (ASPen (ASColor::RED, 2));
+        clipLine (painter, altiShift + et_sx, refh - et_sd,
+                  altiShift + et_sx, refh - et_su, abbl, abbd, abbr, abbu);
+        clipLine (painter, altiShift + et_sx, refh - et_su,
+                  altiShift + et_ex, refh - et_eu, abbl, abbd, abbr, abbu);
+        clipLine (painter, altiShift + et_ex, refh - et_eu,
+                  altiShift + et_ex, refh - et_ed, abbl, abbd, abbr, abbu);
+        clipLine (painter, altiShift + et_ex, refh - et_ed,
+                  altiShift + et_sx, refh - et_sd, abbl, abbd, abbr, abbu);
+      }
+
+      // Draws bump
+      if (ctrl->isTemplateDisplay () && bmp->getStatus () == Bump::RES_OK)
+      {
+        Pt2f start (bmp->start ());
+        Pt2f end (bmp->end ());
+        Pt2f center (bmp->estimatedSurfCenter ());
+        Pt2f mcenter (bmp->estimatedCenter ());
+        int imx = (int) ((mcenter.x () + profshift) * sratio + 0.5f);
+        int imy = (int) ((mcenter.y () - href) * zratio + 0.5f);
+        int icx = (int) ((center.x () + profshift) * sratio + 0.5f);
+        int icy = (int) ((center.y () - href) * zratio + 0.5f);
+        int isx = (int) ((start.x () + profshift) * sratio + 0.5f);
+        int isy = (int) ((start.y () - href) * zratio + 0.5f);
+        int iex = (int) ((end.x () + profshift) * sratio + 0.5f);
+        int iey = (int) ((end.y () - href) * zratio + 0.5f);
+        painter.setPen (ASPen (ASColor::BLUE, 2));
+//        clipLine (painter, altiShift + isx, refh - isy,
+//                  altiShift + iex, refh - iey, abbl, abbd, abbr, abbu);
+        clipLine (painter, altiShift + isx, refh - isy,
+                  altiShift + icx, refh - icy, abbl, abbd, abbr, abbu);
+        clipLine (painter, altiShift + icx, refh - icy,
+                  altiShift + iex, refh - iey, abbl, abbd, abbr, abbu);
+        clipLine (painter, altiShift + icx, refh - icy,
+                  altiShift + imx, refh - imy, abbl, abbd, abbr, abbu);
+
+        // Draws baseline
+        start.set (bmp->lineStart ());
+        end.set (bmp->lineEnd ());
+        isx = (int) ((start.x () + profshift) * sratio + 0.5f);
+        isy = (int) ((start.y () - href) * zratio + 0.5f);
+        iex = (int) ((end.x () + profshift) * sratio + 0.5f);
+        iey = (int) ((end.y () - href) * zratio + 0.5f);
+        painter.setPen (ASPen (ASColor::BLUE, 2));
+        clipLine (painter, altiShift + isx, refh - isy,
+                  altiShift + iex, refh - iey, abbl, abbd, abbr, abbu);
+
+        // Draws direction
+        if (ctrl->isDirDisplay () && bmp->isAccepted ())
+        {
+          float dev = bmp->estimatedDeviation ();
+          float cs = det->getCellSize ();
+          int idev = (int) (LG_DIR * dev / cs + (dev < 0 ? -0.5f : 0.5f));
+          if ((dev < 0.0f ? -dev : dev) > cs)
+            painter.setPen (ASPen (ASColor::RED, 2));
+          else painter.setPen (ASPen (ASColor::GREEN, 2));
+          clipLine (painter, altiShift + isum, refh - ihigh, 
+                    altiShift + isum + idev, refh - ihigh - LG_DIR,
+                    abbl, abbd, abbr, abbu);
+        }
+
+        // Draws measure lower line
+        if (ctrl->isMeasuring ())
+        {
+          int lisx = (int) ((bmp->measureLineStart().x () + profshift)
+                            * sratio + 0.5f);
+          int lisy = (int) ((bmp->measureLineStart().y () - href)
+                            * zratio + 0.5f);
+          int liex = (int) ((bmp->measureLineEnd().x () + profshift)
+                            * sratio + 0.5f);
+          int liey = (int) ((bmp->measureLineEnd().y () - href)
+                            * zratio + 0.5f);
+          painter.setPen (ASPen (ASColor::GREEN, 2));
+          clipLine (painter, altiShift + lisx, refh - lisy,
+                    altiShift + liex, refh - liey, abbl, abbd, abbr, abbu);
+        }
       }
     }
   }

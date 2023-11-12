@@ -46,6 +46,7 @@ const int ILSDItemControl::MAX_LONG_VIEW_WIDTH = 1600;
 const int ILSDItemControl::MIN_LONG_VIEW_HEIGHT = 100;
 const int ILSDItemControl::MAX_LONG_VIEW_HEIGHT = 1000;
 const int ILSDItemControl::SIZE_INC = 5;
+const int ILSDItemControl::MAX_ZRATIO = 20;
 const int ILSDItemControl::DEFAULT_POINT_SIZE = 2;
 const int ILSDItemControl::DEFAULT_SCAN_RESOL = 4;
 const int ILSDItemControl::PROF_SHIFT_INC = 10;
@@ -70,10 +71,13 @@ ILSDItemControl::ILSDItemControl ()
   static_height = true;
   display_template = true;
   display_reference = false;
+  display_alti = true;
   display_estimation = false;
+  display_det = true;
   display_direction = false;
   display_prediction = false;
   display_legend = false;
+  z_ratio = 1;
   profile_shift = 0;
   measuring = false;
   thin_long_strip = true;
@@ -203,6 +207,48 @@ void ILSDItemControl::setScanResolution (int val)
     scan_resol = 1;
     while (val --) scan_resol *= 2;
   }
+}
+
+
+void ILSDItemControl::incZRatio (int inc)
+{
+  int div = z_ratio;
+  while (div >= 10) div /= 10;
+  if (inc > 0)
+  {
+    if (div == 2) setZRatio (z_ratio * 5);
+    else setZRatio (z_ratio * 2);
+  }
+  else
+  {
+    if (div == 2) setZRatio (z_ratio / 2);
+    else setZRatio (z_ratio / 5);
+  }
+}
+
+
+void ILSDItemControl::setZRatio (int val)
+{
+  int div = val, dec = 0, rem = 0;
+  while (div >= 10)
+  {
+    rem = div;
+    div /= 10;
+    rem -= div * 10;
+    dec ++;
+  }
+  if (div >= 8)
+  {
+    div = 1;
+    dec ++;
+  }
+  else if (div >= 4) div = 5;
+  else if (div == 3) div = 2;
+  else if (div == 1 && rem > 5) div = 2;
+  z_ratio = div;
+  while (dec-- != 0) z_ratio *= 10;
+  if (z_ratio <= 0) z_ratio = 1;
+  if (z_ratio > MAX_ZRATIO) z_ratio = MAX_ZRATIO;
 }
 
 

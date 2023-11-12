@@ -235,6 +235,12 @@ protected:
   float sratio;
   /** Scale value for profile reference. */
   int scale;
+  /** Z-scale value for profile reference (in decimeters). */
+  int zcale;
+  /** Length of the horizontal scale. */
+  int scalength;
+  /** Length of the vertical scale. */
+  int zcalength;
   /** Displayed DTM scan reversal status. */
   bool reversed;
 

@@ -205,6 +205,22 @@ void ILSDCrossProfileView::keyPressed (int key, int scancode,
       }
       break;
 
+    case GLFW_KEY_J :
+      if (action == GLFW_PRESS && mods == GLFW_MOD_CONTROL)
+      {
+        item_ctrl->switchAltiDisplay ();
+        update ();
+      }
+      break;
+
+    case GLFW_KEY_K :
+      if (action == GLFW_PRESS && mods == GLFW_MOD_CONTROL)
+      {
+        item_ctrl->switchDetectionDisplay ();
+        update ();
+      }
+      break;
+
     case GLFW_KEY_L :
       if (action == GLFW_PRESS && mods == GLFW_MOD_CONTROL)
       {
@@ -283,6 +299,14 @@ void ILSDCrossProfileView::keyPressed (int key, int scancode,
       }
       break;
 
+    case GLFW_KEY_T :
+      if (action == GLFW_PRESS)
+      {
+        item_ctrl->incScanResolution ((mods & GLFW_MOD_SHIFT) == 0 ? 1 : -1);
+        resetControls ();
+      }
+      break;
+
     case GLFW_KEY_X :
       if (item->isStripAdaptable ())
       {
@@ -301,7 +325,7 @@ void ILSDCrossProfileView::keyPressed (int key, int scancode,
     case GLFW_KEY_W :  // Z
       if (action == GLFW_PRESS)
       {
-        item_ctrl->incScanResolution ((mods & GLFW_MOD_SHIFT) == 0 ? 1 : -1);
+        item_ctrl->incZRatio ((mods & GLFW_MOD_SHIFT) == 0 ? 1 : -1);
         resetControls ();
       }
       break;

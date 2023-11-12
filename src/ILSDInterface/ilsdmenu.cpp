@@ -1171,6 +1171,20 @@ void ILSDMenu::drawCrossProfileMenu (GLWindow* parent)
         ImGui::TextDisabled ("Ctrl F");
       }
 
+      {
+        bool status = ictrl->isDetectionDisplay ();
+        if (ImGui::Checkbox ("Detected structure displayed", &status))
+        {
+          if (status != ictrl->isDetectionDisplay ())
+          {
+            ictrl->switchDetectionDisplay ();
+            det_widget->getCrossProfileView()->update ();
+          }
+        }
+        ImGui::SameLine (SCUTPOS);
+        ImGui::TextDisabled ("Ctrl K");
+      }
+
       if (det_widget->mode () == ILSDDetectionWidget::MODE_CTRACK)
       {
         {
@@ -1214,6 +1228,19 @@ void ILSDMenu::drawCrossProfileMenu (GLWindow* parent)
         }
         ImGui::SameLine (SCUTPOS);
         ImGui::TextDisabled ("Ctrl L");
+      }
+      {
+        bool status = ictrl->isAltiDisplay ();
+        if (ImGui::Checkbox ("Altimetric bar displayed", &status))
+        {
+          if (status != ictrl->isAltiDisplay ())
+          {
+            ictrl->switchAltiDisplay ();
+            det_widget->getCrossProfileView()->update ();
+          }
+        }
+        ImGui::SameLine (SCUTPOS);
+        ImGui::TextDisabled ("Ctrl J");
       }
       {
         bool status = ictrl->isLegendDisplay ();
@@ -1263,7 +1290,7 @@ void ILSDMenu::drawCrossProfileMenu (GLWindow* parent)
   
       {
         int srlevel = ictrl->scanResolutionLevel ();
-        ImGui::SliderInt ("Stripe resolution (W)", &srlevel, 0, 4);
+        ImGui::SliderInt ("Stripe resolution (T)", &srlevel, 0, 4);
         if (srlevel != ictrl->scanResolutionLevel ())
         {
           ictrl->setScanResolution (srlevel);
@@ -1329,6 +1356,16 @@ void ILSDMenu::drawCrossProfileMenu (GLWindow* parent)
         {
           if (reset) ictrl->resetProfileShift ();
           else ictrl->shiftProfile (- outval);
+          det_widget->getCrossProfileView()->update ();
+        }
+      }
+
+      {
+        int zr = ictrl->zRatio ();
+        ImGui::SliderInt ("Z/X ratio (W)", &zr, 1, 20);
+        if (zr != ictrl->zRatio ())
+        {
+          ictrl->setZRatio (zr);
           det_widget->getCrossProfileView()->update ();
         }
       }

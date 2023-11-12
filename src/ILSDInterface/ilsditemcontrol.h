@@ -208,6 +208,23 @@ public:
   void setScanResolution (int val);
 
   /**
+   * \brief Returns the z/x_ratio on point and structure display.
+   */
+  inline int zRatio () const { return z_ratio; }
+
+  /**
+   * \brief Increments the z/x_ratio on point and structure display.
+   * @param inc Direction (1 for leftwards, -1 for rightwards)
+   */
+  void incZRatio (int inc);
+
+  /**
+   * \brief Sets the z/x_ratio on point and structure display.
+   * @param val New ratio.
+   */
+  void setZRatio(int val);
+
+  /**
    * \brief Returns the cloud points size.
    */
   inline int pointSize () const { return point_size; }
@@ -293,6 +310,16 @@ public:
   inline void switchRefDisplay () { display_reference = ! display_reference; }
 
   /**
+   * \brief Inquires if altimetric bar is displayed.
+   */
+  inline bool isAltiDisplay () const { return display_alti; }
+
+  /**
+   * \brief Switches altimetric bar display modality.
+   */
+  inline void switchAltiDisplay () { display_alti = ! display_alti; }
+
+  /**
    * \brief Inquires if estimated position is displayed.
    */
   inline bool isEstimDisplay () const { return display_estimation; }
@@ -302,6 +329,16 @@ public:
    */
   inline void switchEstimDisplay () {
     display_estimation = ! display_estimation; }
+
+  /**
+   * \brief Inquires if detected structure is displayed.
+   */
+  inline bool isDetectionDisplay () const { return display_det; }
+
+  /**
+   * \brief Switches detected structure display modality.
+   */
+  inline void switchDetectionDisplay () { display_det = ! display_det; }
 
   /**
    * \brief Inquires if estimated direction is displayed.
@@ -473,6 +510,8 @@ protected:
 
   /** Drawing parameter : view size increment. */
   static const int SIZE_INC;
+  /** Drawing parameter : maximal z/x-ratio allowed for point and structure. */
+  static const int MAX_ZRATIO;
   /** Drawing parameter : default cloud points size. */
   static const int DEFAULT_POINT_SIZE;
   /** Drawing parameter : default scan point resolution. */
@@ -510,14 +549,20 @@ protected:
   bool display_template;
   /** Reference template display modality. */
   bool display_reference;
+  /** Altimetric bar display modality. */
+  bool display_alti;
   /** Estimated position display modality. */
   bool display_estimation;
+  /** Detected structure display modality. */
+  bool display_det;
   /** Estimated direction display modality. */
   bool display_direction;
   /** Next position display modality. */
   bool display_prediction;
   /** Legend display modality. */
   bool display_legend;
+  /** Z/X ratio on point and structure display. */
+  int z_ratio;
   /** Cloud points size. */
   int point_size;
   /** Controlable side profile shift. */
