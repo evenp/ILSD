@@ -317,6 +317,7 @@ protected:
 
   /**
    * \brief Returns a displayable text for floating point values.
+   * @params val Value to display.
    */
   std::string format (float val) const;
 

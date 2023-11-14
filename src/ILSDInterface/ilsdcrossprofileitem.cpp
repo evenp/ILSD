@@ -525,6 +525,7 @@ void ILSDCrossProfileItem::paintProfile ()
 {
   ASPainter painter (structImage);
   int zr = ctrl->zRatio ();
+  float zratio = sratio * zr;
 
   // Draws metric reference
   int meas = scale;
@@ -550,17 +551,16 @@ void ILSDCrossProfileItem::paintProfile ()
   // Draws Z metric reference when a Z-ratio is applied
   if (zr != 1)
   {
-    float zratio = sratio * zr;
     meas = zcale;
     while (meas > 6) meas /= 10;
     pair = (meas == 1);
     // while (w_height / 2 > 10 * zcale * zratio)  // with hysteresis
-    while (9 * (w_height / 2) > 1 * zcale * zratio)  // no hysteresis
+    while (9 * (w_height / 2) > zcale * zratio)  // no hysteresis
     {
       zcale *= (pair ? 5 : 2);
       pair = ! pair;
     }
-    while (zcale > 1 && 9 * (w_height / 2) < 1 * zcale * zratio)
+    while (zcale > 1 && 9 * (w_height / 2) < zcale * zratio)
     {
       zcale /= (pair ? 2 : 5);
       pair = ! pair;
@@ -581,6 +581,8 @@ void ILSDCrossProfileItem::paintProfile ()
 
   // Draws profile points
   int altiShift = alti_area_margin - ctrl->profileShift ();
+  int lb = alti_area_margin, rb = alti_area_width - 2 * alti_area_margin;
+  int tb = alti_area_margin, bb = w_height - alti_area_margin;
   painter.setPen (ASPen (ASColor::BLACK, ctrl->pointSize ()));
   std::vector<Pt2f>* ppts = getProfile (ctrl->scan ());
   if (ppts != NULL)
@@ -589,9 +591,8 @@ void ILSDCrossProfileItem::paintProfile ()
     while (pit != ppts->end ())
     {
       int x = altiShift + (int) ((pit->x () + profshift) * sratio + 0.5);
-      int y = w_height / 2 - (int) ((pit->y () - href) * sratio * zr + 0.5);
-      if (x >= alti_area_margin && x <= alti_area_width - 2 * alti_area_margin
-          && y >= alti_area_margin && y <= w_height - alti_area_margin)
+      int y = w_height / 2 - (int) ((pit->y () - href) * zratio + 0.5);
+      if (x >= lb && x <= rb && y >= tb && y <= bb)
         painter.drawPoint (x, y);
       pit ++;
     }

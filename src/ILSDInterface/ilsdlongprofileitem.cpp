@@ -50,11 +50,13 @@ ILSDLongProfileItem::ILSDLongProfileItem (ILSDItemControl *item_ctrl)
 
   ptset = NULL;
   href = 0.0f;
+  zmin = 0.0f;
+  zmax = 1.0f;
+  profile_length = 1.0f;
   profshift = 0.0f;
   sratio = 1.0f;
   scale = 1;
   reversed = false;
-  profile_length = 1.0f;
   resetControls ();
 
   iratio = 1.0f; // (1/csize)

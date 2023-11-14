@@ -61,6 +61,7 @@ public:
 
   /**
    * \brief Updates the widget display.
+   * @params parentWindow Reference to parent widget.
    */
   void paint (GLWindow* context);
 
