@@ -440,13 +440,9 @@ int Bump::setTrend (const std::vector<Pt2f> &ptsh,
         if (nth < ass_thick * pinch_th.den ())
         {
           if (nth < bmod->trendMinPinch () * pinch_th.den ())
-          {
             bsp->setMaxWidth (EDist (bmod->trendMinPinch (), 1));
-          }
           else
-          {
             bsp->setMaxWidth (EDist (nth, pinch_th.den ()));
-          }
         }
         unpinched = false;
       }

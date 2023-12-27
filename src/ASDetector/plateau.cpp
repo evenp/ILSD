@@ -354,8 +354,9 @@ bool Plateau::track (const std::vector<Pt2f> &ptsh,
       if (isLarge && rextent + lextent > pinch_l)
       {
         EDist pinch_th (bsp->digitalThickness());
-        int nth = (int) (((float) pinch_th.num ()) / pinch_th.den ());
-        bsp->setMaxWidth (EDist (nth + pmod->bsPinchMargin (), 1));
+        int nth = pmod->bsPinchMargin ()
+                  + (int) (((float) pinch_th.num ()) / pinch_th.den ());
+        if (nth < stol) bsp->setMaxWidth (EDist (nth, 1));
         isLarge = false;
       }
       if (added)
@@ -373,8 +374,9 @@ bool Plateau::track (const std::vector<Pt2f> &ptsh,
       if (isLarge && rextent + lextent > pinch_l)
       {
         EDist pinch_th (bsp->digitalThickness());
-        int nth = (int) (((float) pinch_th.num ()) / pinch_th.den ());
-        bsp->setMaxWidth (EDist (nth + pmod->bsPinchMargin (), 1));
+        int nth = pmod->bsPinchMargin ()
+                  + (int) (((float) pinch_th.num ()) / pinch_th.den ());
+        if (nth < stol) bsp->setMaxWidth (EDist (nth, 1));
         isLarge = false;
       }
       if (added)

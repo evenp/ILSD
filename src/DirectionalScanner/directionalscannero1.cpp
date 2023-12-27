@@ -266,6 +266,106 @@ int DirectionalScannerO1::nextOnRight (std::vector<Pt2i> &scan)
 }
 
 
+int DirectionalScannerO1::skipLeft (std::vector<Pt2i> &scan, int skip)
+{
+  // Prepares the next scan
+  if (clearance) scan.clear ();
+  while (skip-- != 0)
+  {
+    if (lstop)
+    {
+      lcy --;
+      if (--lst2 < steps) lst2 = fs - 1;
+      lstop = false;
+    }
+    else
+    {
+      if (--lst1 < steps) lst1 = fs - 1;
+      lcx --;
+      if (*lst1)
+      {
+        lcy --;
+        if (--lst2 < steps) lst2 = fs - 1;
+        if (*lst2)
+        {
+          if (++lst2 >= fs) lst2 = steps;
+          lcy ++;
+          lstop = true;
+        }
+      }
+    }
+  }
+
+  // Computes the next scan
+  int x = lcx;
+  int y = lcy;
+  bool *nst = lst2;
+  while ((x >= xmax || y < ymin) && dla * x + dlb * y >= dlc2)
+  {
+    if (*nst) x--;
+    y++;
+    if (++nst >= fs) nst = steps;
+  }
+  while (dla * x + dlb * y >= dlc2 && x >= xmin && y < ymax)
+  {
+    scan.push_back (Pt2i (x, y));
+    if (*nst) x--;
+    y++;
+    if (++nst >= fs) nst = steps;
+  }
+  return ((int) (scan.size ()));
+}
+
+
+int DirectionalScannerO1::skipRight (std::vector<Pt2i> &scan, int skip)
+{
+  // Prepares the next scan
+  if (clearance) scan.clear ();
+  while (skip-- != 0)
+  {
+    if (rstop)
+    {
+      rcx ++;
+      rstop = false;
+    }
+    else
+    {
+      rcx ++;
+      if (*rst1)
+      {
+        if (*rst2)
+        {
+          rcx --;
+          rstop = true;
+        }
+        rcy ++;
+        if (++rst2 >= fs) rst2 = steps;
+      }
+      if (++rst1 >= fs) rst1 = steps;
+    }
+  }
+
+  // Computes the next scan
+  int x = rcx;
+  int y = rcy;
+  bool *nst = rst2;
+  while ((x >= xmax || y < ymin) && dla * x + dlb * y >= dlc2)
+  {
+    if (*nst) x--;
+    y++;
+    if (++nst >= fs) nst = steps;
+  }
+  while (dla * x + dlb * y >= dlc2 && x >= xmin && y < ymax)
+  {
+    scan.push_back (Pt2i (x, y));
+    if (*nst) x--;
+    y++;
+    if (++nst >= fs) nst = steps;
+  }
+  return ((int) (scan.size ()));
+}
+
+
 Pt2i DirectionalScannerO1::locate (const Pt2i &pt) const
 {
   int x = ccx, y = ccy;      // Current position coordinates

@@ -69,6 +69,22 @@ public:
   virtual int nextOnRight (std::vector<Pt2i> &scan) = 0;
 
   /**
+   * \brief Gets next skipped scan to the left in a vector.
+   * Adds points of next left scan to given vector and returns its new size.
+   * @param scan Vector of points to be completed.
+   * @param skip Skip length.
+   */
+  virtual int skipLeft (std::vector<Pt2i> &scan, int skip) = 0;
+
+  /**
+   * \brief Gets next skipped scan to the right in a vector.
+   * Adds points of next right scan to given vector and returns its new size.
+   * @param scan Vector of points to be completed.
+   * @param skip Skip length.
+   */
+  virtual int skipRight (std::vector<Pt2i> &scan, int skip) = 0;
+
+  /**
    * \brief Binds the scan strip to wrap the given digital line.
    * Resets bounding lines parameters to center the scan strip on given line.
    * @param a New value for the 'a' parameter of current scan strip.

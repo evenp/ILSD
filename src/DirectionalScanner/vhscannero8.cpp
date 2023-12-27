@@ -216,3 +216,68 @@ int VHScannerO8::nextOnRight (std::vector<Pt2i> &scan)
   }
   return ((int) (scan.size ()));
 }
+
+
+int VHScannerO8::skipLeft (std::vector<Pt2i> &scan, int skip)
+{
+  // Prepares the next scan
+  if (clearance) scan.clear ();
+  lcx -= skip;
+  if (lcx < xmin) return 0;
+
+  while (lcy < ymax - 1 && dla * lcx + dlb * lcy < dlc1)
+  {
+    lcy ++;
+  }
+  while (lcy > ymin && dla * lcx + dlb * lcy > dlc1)
+  {
+    lcy --;
+  }
+
+  // Computes the next scan
+  int x = lcx;
+  int y = lcy;
+  while (y < ymin && dla * x + dlb * y <= dlc2)
+  {
+    y++;
+  }
+  while (dla * x + dlb * y <= dlc2 && y < ymax)
+  {
+    scan.push_back (Pt2i (x, y));
+    y++;
+  }
+  return ((int) (scan.size ()));
+}
+
+
+int VHScannerO8::skipRight (std::vector<Pt2i> &scan, int skip)
+{
+  // Prepares the next scan
+  if (clearance) scan.clear ();
+  rcx += skip;
+  if (rcx >= xmax) return 0;
+
+  // Whenever the control corridor changed
+  while (rcy < ymax - 1 && dla * rcx + dlb * rcy < dlc1)
+  {
+    rcy ++;
+  }
+  while (rcy > ymin && dla * rcx + dlb * rcy > dlc1)
+  {
+    rcy --;
+  }
+
+  // Computes the next scan
+  int x = rcx;
+  int y = rcy;
+  while (y < ymin && dla * x + dlb * y <= dlc2)
+  {
+    y++;
+  }
+  while (dla * x + dlb * y <= dlc2 && y < ymax)
+  {
+    scan.push_back (Pt2i (x, y));
+    y++;
+  }
+  return ((int) (scan.size ()));
+}

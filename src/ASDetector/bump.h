@@ -28,7 +28,7 @@
 #include "pt2f.h"
 #include "bumpmodel.h"
 #include "digitalstraightsegment.h"
-//#include <iostream>
+#include <cstddef>
 
 
 /** 

@@ -146,8 +146,16 @@ DirectionalScanner *ScannerProvider::getScanner (Pt2i centre, Vr2i normal,
   // Orients rightwards
   int a = normal.x ();
   int b = normal.y ();  // as equation is (ax + by = c)
+/*
   last_scan_reversed = (a < 0 || (a == 0 && b < 0));
   if (last_scan_reversed)
+  {
+    a = -a;
+    b = -b;
+  }
+*/
+  last_scan_reversed = (b < 0 || (b == 0 && a < 0));
+  if (a < 0 || (a == 0 && b < 0))
   {
     a = -a;
     b = -b;
@@ -216,4 +224,10 @@ DirectionalScanner *ScannerProvider::getScanner (Pt2i centre, Vr2i normal,
               new DirectionalScannerO7 (xmin, ymin, xmax, ymax,
                                         a, b, nbs, steps,
                                         centre.x (), centre.y (), length));
+}
+
+
+bool ScannerProvider::isReversed (const Vr2i &vec)
+{
+  return (vec.y () < 0 || (vec.y () == 0 && vec.x () < 0));
 }

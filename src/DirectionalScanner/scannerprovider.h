@@ -96,6 +96,14 @@ public:
    */
   inline void setOrtho (bool status) { isOrtho = status; }
 
+  /**
+   * \brief Returns whether given direction is permutated.
+   * This function indicates if the direction is reversed
+   *   when it is used as a first scan or a normal vector to build a scanner.
+   * @param vec Tested direction.
+   */
+  static bool isReversed (const Vr2i &vec);
+
 
 private:
 

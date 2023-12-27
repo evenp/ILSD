@@ -265,6 +265,105 @@ int DirectionalScannerO2::nextOnRight (std::vector<Pt2i> &scan)
 }
 
 
+int DirectionalScannerO2::skipLeft (std::vector<Pt2i> &scan, int skip)
+{
+  // Prepares the next scan
+  if (clearance) scan.clear ();
+  while (skip-- != 0)
+  {
+    if (lstop)
+    {
+      lcy --;
+      lstop = false;
+    }
+    else
+    {
+      if (--lst1 < steps) lst1 = fs - 1;
+      lcy --;
+      if (*lst1)
+      {
+        lcx --;
+        if (*lst2)
+        {
+          lcy ++;
+          lstop = true;
+        }
+        if (++lst2 >= fs) lst2 = steps;
+      }
+    }
+  }
+
+  // Computes the next scan
+  int x = lcx;
+  int y = lcy;
+  bool *nst = lst2;
+  while ((y < ymin || x >= xmax) && dla * x + dlb * y >= dlc2)
+  {
+    if (*nst) y++;
+    x--;
+    if (++nst >= fs) nst = steps;
+  }
+  while (dla * x + dlb * y >= dlc2 && y < ymax && x >= xmin)
+  {
+    scan.push_back (Pt2i (x, y));
+    if (*nst) y++;
+    x--;
+    if (++nst >= fs) nst = steps;
+  }
+  return ((int) (scan.size ()));
+}
+
+
+int DirectionalScannerO2::skipRight (std::vector<Pt2i> &scan, int skip)
+{
+  // Prepares the next scan
+  if (clearance) scan.clear ();
+  while (skip-- != 0)
+  {
+    if (rstop)
+    {
+      rcx ++;
+      if (--rst2 < steps) rst2 = fs - 1;
+      rstop = false;
+    }
+    else
+    {
+      rcy ++;
+      if (*rst1)
+      {
+        if (--rst2 < steps) rst2 = fs - 1;
+        if (*rst2)
+        {
+          if (++rst2 >= fs) rst2 = steps;
+          rstop = true;
+        }
+        else rcx ++;
+      }
+      if (++rst1 >= fs) rst1 = steps;
+    }
+  }
+
+  // Computes the next scan
+  int x = rcx;
+  int y = rcy;
+  bool *nst = rst2;
+  while ((y < ymin || x >= xmax) && dla * x + dlb * y >= dlc2)
+  {
+    if (*nst) y++;
+    x--;
+    if (++nst >= fs) nst = steps;
+  }
+  while (dla * x + dlb * y >= dlc2 && y < ymax && x >= xmin)
+  {
+    scan.push_back (Pt2i (x, y));
+    if (*nst) y++;
+    x--;
+    if (++nst >= fs) nst = steps;
+  }
+  return ((int) (scan.size ()));
+}
+
+
 Pt2i DirectionalScannerO2::locate (const Pt2i &pt) const
 {
   int x = ccx, y = ccy;      // Current position coordinates

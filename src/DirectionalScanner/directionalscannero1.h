@@ -125,6 +125,22 @@ public:
   int nextOnRight (std::vector<Pt2i> &scan);
 
   /**
+   * \brief Gets next skipped scan to the left in a vector.
+   * Adds points of next left scan to given vector and returns its new size.
+   * @param scan Vector of points to be completed.
+   * @param skip Skip length.
+   */
+  int skipLeft (std::vector<Pt2i> &scan, int skip);
+
+  /**
+   * \brief Gets next skipped scan to the right in a vector.
+   * Adds points of next right scan to given vector and returns its new size.
+   * @param scan Vector of points to be completed.
+   * @param skip Skip length.
+   */
+  int skipRight (std::vector<Pt2i> &scan, int skip);
+
+  /**
    * \brief Returns the scanner coordinates of given point.
    * Scanner coordinates are the scan index and the position in the scan.
    * @param pt Image coordinates of the point.

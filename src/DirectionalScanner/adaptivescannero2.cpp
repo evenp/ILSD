@@ -250,6 +250,85 @@ int AdaptiveScannerO2::nextOnRight (std::vector<Pt2i> &scan)
 }
 
 
+int AdaptiveScannerO2::skipLeft (std::vector<Pt2i> &scan, int skip)
+{
+  // Prepares the next scan
+  if (clearance) scan.clear ();
+  lcy -= skip;
+  // Whenever the control line changed
+  while (lcx > xmin && lcy < ymax && dla * lcx + dlb * lcy > dlc1)
+  {
+    if (*lst2) lcy ++;
+    lcx --;
+    if (++lst2 >= fs) lst2 = steps;
+  }
+  while (lcx < xmax - 1 && lcy >= ymin && dla * lcx + dlb * lcy < dlc1)
+  {
+    if (--lst2 < steps) lst2 = steps + nbs - 1;
+    if (*lst2) lcy --;
+    lcx ++;
+  }
+
+  // Computes the next scan
+  int x = lcx;
+  int y = lcy;
+  bool *nst = lst2;
+  while ((y < ymin || x >= xmax) && dla * x + dlb * y >= dlc2)
+  {
+    if (*nst) y++;
+    x--;
+    if (++nst >= fs) nst = steps;
+  }
+  while (dla * x + dlb * y >= dlc2 && y < ymax && x >= xmin)
+  {
+    scan.push_back (Pt2i (x, y));
+    if (*nst) y++;
+    x--;
+    if (++nst >= fs) nst = steps;
+  }
+  return ((int) (scan.size ()));
+}
+
+
+int AdaptiveScannerO2::skipRight (std::vector<Pt2i> &scan, int skip)
+{
+  // Prepares the next scan
+  if (clearance) scan.clear ();
+  rcy += skip;
+  while (rcx > xmin && rcy < ymax && dla * rcx + dlb * rcy > dlc1)
+  {
+    if (*rst2) rcy ++;
+    rcx --;
+    if (++rst2 >= fs) rst2 = steps;
+  }
+  while (rcx < xmax - 1 && rcy >= ymin && dla * rcx + dlb * rcy < dlc1)
+  {
+    if (--rst2 < steps) rst2 = steps + nbs - 1;
+    if (*rst2) rcy --;
+    rcx ++;
+  }
+
+  // Computes the next scan
+  int x = rcx;
+  int y = rcy;
+  bool *nst = rst2;
+  while ((y < ymin || x >= xmax) && dla * x + dlb * y >= dlc2)
+  {
+    if (*nst) y++;
+    x--;
+    if (++nst >= fs) nst = steps;
+  }
+  while (dla * x + dlb * y >= dlc2 && y < ymax && x >= xmin)
+  {
+    scan.push_back (Pt2i (x, y));
+    if (*nst) y++;
+    x--;
+    if (++nst >= fs) nst = steps;
+  }
+  return ((int) (scan.size ()));
+}
+
+
 void AdaptiveScannerO2::bindTo (int a, int b, int c)
 {
   if (a < 0)

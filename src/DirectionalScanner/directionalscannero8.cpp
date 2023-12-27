@@ -265,6 +265,105 @@ int DirectionalScannerO8::nextOnRight (std::vector<Pt2i> &scan)
 }
 
 
+int DirectionalScannerO8::skipLeft (std::vector<Pt2i> &scan, int skip)
+{
+  // Prepares the next scan
+  if (clearance) scan.clear ();
+  while (skip-- != 0)
+  {
+    if (lstop)
+    {
+      lcx --;
+      lstop = false;
+    }
+    else
+    {
+      if (--lst1 < steps) lst1 = fs - 1;
+      lcx --;
+      if (*lst1)
+      {
+        lcy ++;
+        if (*lst2)
+        {
+          lcx ++;
+          lstop = true;
+        }
+        if (++lst2 >= fs) lst2 = steps;
+      }
+    }
+  }
+
+  // Computes the next scan
+  int x = lcx;
+  int y = lcy;
+  bool *nst = lst2;
+  while ((x < xmin || y < ymin) && dla * x + dlb * y <= dlc2)
+  {
+    if (*nst) x++;
+    y++;
+    if (++nst >= fs) nst = steps;
+  }
+  while (dla * x + dlb * y <= dlc2 && x < xmax && y < ymax)
+  {
+    scan.push_back (Pt2i (x, y));
+    if (*nst) x++;
+    y++;
+    if (++nst >= fs) nst = steps;
+  }
+  return ((int) (scan.size ()));
+}
+
+
+int DirectionalScannerO8::skipRight (std::vector<Pt2i> &scan, int skip)
+{
+  // Prepares the next scan
+  if (clearance) scan.clear ();
+  while (skip-- != 0)
+  {
+    if (rstop)
+    {
+      rcy --;
+      if (--rst2 < steps) rst2 = fs - 1;
+      rstop = false;
+    }
+    else
+    {
+      rcx ++;
+      if (*rst1)
+      {
+        if (--rst2 < steps) rst2 = fs - 1;
+        if (*rst2)
+        {
+          if (++rst2 >= fs) rst2 = steps;
+          rstop = true;
+        }
+        else rcy --;
+      }
+      if (++rst1 >= fs) rst1 = steps;
+    }
+  }
+
+  // Computes the next scan
+  int x = rcx;
+  int y = rcy;
+  bool *nst = rst2;
+  while ((x < xmin || y < ymin) && dla * x + dlb * y <= dlc2)
+  {
+    if (*nst) x++;
+    y++;
+    if (++nst >= fs) nst = steps;
+  }
+  while (dla * x + dlb * y <= dlc2 && x < xmax && y < ymax)
+  {
+    scan.push_back (Pt2i (x, y));
+    if (*nst) x++;
+    y++;
+    if (++nst >= fs) nst = steps;
+  }
+  return ((int) (scan.size ()));
+}
+
+
 Pt2i DirectionalScannerO8::locate (const Pt2i &pt) const
 {
   int x = ccx, y = ccy;      // Current position coordinates
