@@ -25,7 +25,6 @@
 #include "ctrackdetector.h"
 #include <cmath>
 #include <algorithm>
-#include <iostream>
 
 
 const int CTrackDetector::RESULT_NONE = 0;
@@ -37,6 +36,7 @@ const int CTrackDetector::RESULT_FAIL_NO_CONSISTENT_SEQUENCE = -4;
 const int CTrackDetector::RESULT_FAIL_NO_BOUNDS = -5;
 const int CTrackDetector::RESULT_FAIL_TOO_HECTIC_PLATEAUX = -6;
 const int CTrackDetector::RESULT_FAIL_TOO_SPARSE_PLATEAUX = -7;
+const int CTrackDetector::RESULT_FAIL_DISCONNECT = -8;
 
 const float CTrackDetector::MAX_TRACK_WIDTH = 6.0f;
 const int CTrackDetector::DEFAULT_PLATEAU_LACK_TOLERANCE = 11;
@@ -50,12 +50,13 @@ const float CTrackDetector::LN_UNSTAB = 0.25f;
 const int CTrackDetector::NB_UNSTAB = 2;
 const float CTrackDetector::POS_INCR = 0.05f;
 
-const int CTrackDetector::NB_SIDE_TRIALS = 11; // 13;
+const int CTrackDetector::NB_SIDE_TRIALS = 5;
 
 
 CTrackDetector::CTrackDetector ()
 {
   auto_p = false;
+  connect_on = false;
   ptset = NULL;
   profileRecordOn = false;
   plateau_lack_tolerance = DEFAULT_PLATEAU_LACK_TOLERANCE;
@@ -76,6 +77,7 @@ CTrackDetector::CTrackDetector ()
   lpos = new float[posht_nb];
   lhok = new bool[posht_nb];
   lht = new float[posht_nb];
+  initial_ref = 0;
   initial_refs = 0.0f;
   initial_refe = 0.0f;
   initial_refh = 0.0f;
@@ -437,36 +439,38 @@ void CTrackDetector::detect ()
   fct = new CarriageTrack ();
   fct->setDetectionSeed (p1, p2, csize);
 
-  float *tests = new float[NB_SIDE_TRIALS];
-  tests[0] = 0.0f;
-  for (int i = 1; i <= NB_SIDE_TRIALS / 2; i ++)
+  float *tests = new float[NB_SIDE_TRIALS * 2];
+  for (int i = 0; i < NB_SIDE_TRIALS; i ++)
   {
-    tests[2 * i - 1] = (float) i;
-    if (2 * i < NB_SIDE_TRIALS) tests[2 * i] = - (float) i;
+    tests[2 * i] = pfeat.firstPlateauSearchDistance () * (i + 1);
+    tests[2 * i + 1] = - pfeat.firstPlateauSearchDistance () * (i + 1);
   }
-  bool found = false;
-  Plateau *cpl = NULL;
-  for (int ptest = 0; ptest != NB_SIDE_TRIALS; ptest++)
+  Plateau *cpl = new Plateau (&pfeat);
+  bool found = (pfeat.isNetBuildOn () ?
+    cpl->track (cpts, NULL, 0, 0.0f, l12) :
+    cpl->track (cpts, 0.0f, l12, 0.0f, 0.0f, 0));
+  for (int ptest = 0; ptest != NB_SIDE_TRIALS * 2; ptest++)
   {
     Plateau *cpl2 = new Plateau (&pfeat);
-    bool success = cpl2->track (cpts, 0.0f, l12, 0.0f, tests[ptest], 0);
+    bool success = (pfeat.isNetBuildOn () ?
+      cpl2->track (cpts, NULL, 0, tests[ptest], l12) :
+      cpl2->track (cpts, 0.0f, l12, 0.0f, tests[ptest], 0));
     if (success) found = true;
-    if (cpl == NULL) cpl = cpl2;
-    else
+    if (success && cpl2->thinerThan (cpl))
     {
-      if (success && cpl2->thinerThan (cpl))
-      {
-        delete cpl;
-        cpl = cpl2;
-      }
-      else delete cpl2;
+      delete cpl;
+      cpl = cpl2;
     }
+    else delete cpl2;
   }
-//  cpl->acceptResult ();
   if (profileRecordOn) fct->start (cpl, dispix, cpts,
                                    scanp.isLastScanReversed ());
   else fct->start (cpl, dispix, scanp.isLastScanReversed ());
-//  if (success) ct->accept (0);
+  if (pfeat.isNetBuildOn ())
+  {
+    if (cpl->consistentWidth ()) fct->accept (0);
+  }
+  else if (found) fct->accept (0);
   if (! found)
   {
     fct->setStatus (RESULT_FAIL_NO_CENTRAL_PLATEAU);
@@ -478,6 +482,7 @@ void CTrackDetector::detect ()
 
   // Updates reference pattern and detects next plateaux on each side
   if (cpl->bounded ()) initial_unbounded = false;
+  initial_ref = 0;
   initial_refs = cpl->internalStart ();
   initial_refe = cpl->internalEnd ();
   initial_refh = cpl->getMinHeight ();
@@ -486,14 +491,19 @@ void CTrackDetector::detect ()
 
   resetRegisters (cpl->reliable (),
                   cpl->estimatedCenter (), cpl->getMinHeight ());
-  track (true, scanp.isLastScanReversed (), 0,
-         ds, disp, p1f, p12, l12, initial_refs, initial_refe, initial_refh);
+  if (pfeat.isNetBuildOn ())
+    track (true, scanp.isLastScanReversed (), 0, ds, disp, p1f, p12, l12, cpl);
+  else track (true, scanp.isLastScanReversed (), 0, ds, disp,
+              p1f, p12, l12, initial_refs, initial_refe, initial_refh);
   bool firstUnbounded = initial_unbounded;
 
   resetRegisters (cpl->reliable (),
                   cpl->estimatedCenter (), cpl->getMinHeight ());
-  track (false, scanp.isLastScanReversed (), 0,
-         ds2, disp2, p1f, p12, l12, initial_refs, initial_refe, initial_refh);
+  if (pfeat.isNetBuildOn ())
+    track (false, scanp.isLastScanReversed (), 0, ds2, disp2,
+           p1f, p12, l12, fct->plateau (initial_ref));
+  else track (false, scanp.isLastScanReversed (), 0, ds2, disp2,
+              p1f, p12, l12, initial_refs, initial_refe, initial_refh);
 
   // second chance for first side if the central plateau was not bounded
   //   and a bound was found on the second side.
@@ -501,8 +511,11 @@ void CTrackDetector::detect ()
   {
     resetRegisters (cpl->reliable (),
                     cpl->estimatedCenter (), cpl->getMinHeight ());
-    track (true, scanp.isLastScanReversed (), 0,
-           ds, disp, p1f, p12, l12, initial_refs, initial_refe, initial_refh);
+    if (pfeat.isNetBuildOn ())
+      track (true, scanp.isLastScanReversed (), 0, ds, disp,
+             p1f, p12, l12, fct->plateau (initial_ref));
+    else track (true, scanp.isLastScanReversed (), 0, ds, disp,
+                p1f, p12, l12, initial_refs, initial_refe, initial_refh);
   }
   if (pfeat.tailMinSize () != 0 && fct->prune (pfeat.tailMinSize ()))
   {
@@ -538,15 +551,6 @@ void CTrackDetector::track (bool onright, bool reversed, int exlimit,
       a = -a;
       b = -b;
     }
-/*
-    float val = (refs + refe) / 2;
-    float posx = p1.x () + ((p2.x () - p1.x ()) * csize / l12)
-                           * val / csize;
-    float posy = p1.y () + ((p2.y () - p1.y ()) * csize / l12)
-                           * val / csize;
-    float valc = a * posx + b * posy;
-    int scan_shift = (int) (valc < 0.0f ? valc - 0.5f : valc + 0.5f);
-*/
     int scan_shift = ct->scanShift ((refs + refe) / 2);
     disp->bindTo (a, b, scan_shift);
     ds->bindTo (a, b, scan_shift * subdiv + subdiv / 2);
@@ -583,11 +587,11 @@ void CTrackDetector::track (bool onright, bool reversed, int exlimit,
         }
         it ++;
       }
+      sort (pts.begin (), pts.end (), compIFurther);
 
       // Detects the plateau and updates the track section
       Plateau *pl = new Plateau (&pfeat);
       pl->setScanShift (scan_shift);
-      sort (pts.begin (), pts.end (), compIFurther);
       pl->track (pts, refs, refe, refh, 0.0f, confdist);
       if (pl->getStatus () != Plateau::PLATEAU_RES_OK)
       {
@@ -684,6 +688,205 @@ void CTrackDetector::track (bool onright, bool reversed, int exlimit,
         confdist = 1;
       }
       else confdist ++;
+    }
+    num += (onright ? -1 : 1);
+  }
+}
+
+
+// AMRELnet version
+void CTrackDetector::track (bool onright, bool reversed, int exlimit,
+                            DirectionalScanner *ds, DirectionalScanner *disp,
+                            Pt2f p1f, Vr2f p12, float l12, Plateau *ref)
+{
+  bool search = true;
+  int nbfail = 0;
+  int num = (onright ? -1 : 1);
+  if (onright) exlimit = - exlimit;
+  CarriageTrack *ct = (exlimit != 0 ? ict : fct);
+  ct->clear (onright);
+  int confdist = 1;
+  while (search && num != exlimit)
+  {
+    // Adaptive scan recentering on reference pattern
+    Pt2i p1, p2;
+    getInputStroke (p1, p2, exlimit != 0);
+    int a = p2.x () - p1.x ();
+    int b = p2.y () - p1.y ();
+    if (a < 0.)
+    {
+      a = -a;
+      b = -b;
+    }
+    int scan_shift = ct->scanShift (ref->estimatedCenter ());
+    disp->bindTo (a, b, scan_shift);
+    ds->bindTo (a, b, scan_shift * subdiv + subdiv / 2);
+
+    // Collects next scan points and sorts them by distance
+    std::vector<Pt2i> pix;
+    std::vector<Pt2i> dispix;
+    if ((onright && ! reversed) || (reversed && ! onright))
+      disp->nextOnRight (dispix);
+    else disp->nextOnLeft (dispix);
+    if (dispix.empty ()) search = false;
+    else
+      for (int i = 0; search && i < subdiv; i++)
+        if ((onright && ! reversed) || (reversed && ! onright))
+        {
+          if (ds->nextOnRight (pix) == 0) search = false;
+        }
+        else if (ds->nextOnLeft (pix) == 0) search = false;
+    if (pix.empty ()) search = false;
+    else
+    {
+      std::vector<Pt2f> pts;
+      std::vector<Pt2i>::iterator it = pix.begin ();
+      while (it != pix.end ())
+      {
+        std::vector<Pt3f> ptcl;
+        if (! ptset->collectPoints (ptcl, it->x (), it->y ())) out_count ++;
+        std::vector<Pt3f>::iterator pit = ptcl.begin ();
+        while (pit != ptcl.end ())
+        {
+          Vr2f pcl (pit->x () - p1f.x (), pit->y () - p1f.y ());
+          pts.push_back (Pt2f (pcl.scalarProduct (p12) / l12, pit->z ()));
+          pit ++;
+        }
+        it ++;
+      }
+
+      // Detects the plateau and updates the track section
+      Plateau *pl = new Plateau (&pfeat);
+      pl->setScanShift (scan_shift);
+      sort (pts.begin (), pts.end (), compIFurther);
+      pl->track (pts, ref, confdist, 0.0f, 0.0f);
+      if (pl->getStatus () != Plateau::PLATEAU_RES_OK)
+      {
+        float *retests = new float[NB_SIDE_TRIALS * 2];
+        for (int i = 0; i < NB_SIDE_TRIALS; i ++)
+        {
+          retests[2 * i] = pfeat.plateauSearchDistance () * (i + 1);
+          retests[2 * i + 1] = - pfeat.plateauSearchDistance () * (i + 1);
+        }
+        bool tracking = true;
+        for (int i = 0; tracking && i < NB_SIDE_TRIALS * 2; i++)
+        {
+          Plateau *pl2 = new Plateau (&pfeat);
+          pl2->setScanShift (scan_shift);
+          pl2->track (pts, ref, confdist, retests[i], 0.0f);
+          if (pl2->getStatus () > pl->getStatus ())
+          {
+            delete pl;
+            pl = pl2;
+            if (pl->getStatus () == Plateau::PLATEAU_RES_OK) tracking = false;
+          }
+          else delete pl2;
+        }
+      }
+      if (profileRecordOn) ct->add (onright, pl, dispix, pts);
+      else ct->add (onright, pl, dispix);
+
+      // Ends tracking when meeting an obstacle.
+      if (pfeat.isNetBuildOn () && pl->impassable ()) search = false;
+
+      // Ends tracking after a given amount of failures (point lacks apart).
+      if (pl->getStatus () == Plateau::PLATEAU_RES_OK) nbfail = 0;
+      else if (density_insensitive || pl->hasEnoughPoints ())
+        if (++nbfail >= plateau_lack_tolerance) search = false;
+      // no lack count increment otherwise
+
+      // Manages start bounds setting
+      if (search && initial_unbounded)
+      {
+        if (pl->bounded () && pl->isAccepted ())
+        {
+          initial_unbounded = false;
+          initial_ref = num;
+        }
+        else
+          if (num == NOBOUNDS_TOLERANCE || num == - NOBOUNDS_TOLERANCE)
+          {
+            ct->setStatus (RESULT_FAIL_NO_BOUNDS);
+            if (exlimit != 0) istatus = RESULT_FAIL_NO_BOUNDS;
+            else fstatus = RESULT_FAIL_NO_BOUNDS;
+            search = false;
+          }
+      }
+
+      if (search)
+      {
+        // Estimates deviation and slope
+        pl->setDeviation (updatePosition (pl->possible (),
+                                          pl->estimatedCenter ()));
+        pl->setSlope (updateHeight (pl->consistentHeight (),
+                                    pl->getMinHeight ()));
+      }
+      //if (pl->possible ()) ref = pl;
+      ref = pl;
+
+      // Conditionally accepts the plateau and former consistent ones.
+      if (pl->getStatus () == Plateau::PLATEAU_RES_OK && pl->reliable ())
+      {
+        if (connect_on)
+        {
+          int locnum = num;
+          Plateau *hpl = pl;
+          Plateau *fpl = ct->plateau (num < 0 ? num + confdist
+                                              : num - confdist);
+          int cdist = confdist;
+          bool cleaning = true;
+          while (cleaning && cdist != 1)
+          {
+            locnum += (locnum < 0 ? 1 : -1);
+            Plateau *lpl = ct->plateau (locnum);
+            cleaning = lpl->fit (hpl, fpl, cdist);
+            hpl = lpl;
+            cdist --;
+          }
+          if (cleaning)
+          {
+            for (int i = 1; i < confdist; i++)
+              ct->accept (num < 0 ? num + i : num - i);
+            ct->accept (num);
+          }
+          else
+          {
+            search = false;
+            ct->setStatus (RESULT_FAIL_DISCONNECT);
+            if (exlimit != 0) istatus = RESULT_FAIL_DISCONNECT;
+            else fstatus = RESULT_FAIL_DISCONNECT;
+          }
+        }
+        else
+        {
+          int locnum = num;
+          Plateau *lpl = NULL;
+          ct->accept (num);
+          float c1 = pl->estimatedCenter ();
+          lpl = ct->plateau (num < 0 ? num + confdist
+                                              : num - confdist);
+          float dc = (lpl->estimatedCenter () - c1) / confdist;
+          bool ok = true;
+          for (int i = 1; ok && i < confdist; i ++)
+          {
+            locnum += (locnum < 0 ? 1 : -1);
+            lpl = ct->plateau (locnum);
+            if (lpl->contains (c1 + dc * i)) ct->accept (locnum);
+          }
+        }
+        confdist = 1;
+        if (! pl->isConnectedTo (ct->plateau (num < 0 ? num + 1 : num - 1)))
+        {
+          ct->setStatus (RESULT_FAIL_DISCONNECT);
+          if (exlimit != 0) istatus = RESULT_FAIL_DISCONNECT;
+          else fstatus = RESULT_FAIL_DISCONNECT;
+          search = false;
+        }
+      }
+      else
+      {
+        confdist ++;
+      }
     }
     num += (onright ? -1 : 1);
   }

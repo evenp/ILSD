@@ -34,7 +34,7 @@
 
 
 DirectionalScanner *ScannerProvider::getScanner (Pt2i p1, Pt2i p2,
-                                                 bool controlable)
+                                                 bool adaptive)
 {
   // Enforces P1 to be lower than P2
   // or to left of P2 in case of equality
@@ -73,7 +73,7 @@ DirectionalScanner *ScannerProvider::getScanner (Pt2i p1, Pt2i p2,
         return (new VHScannerO1 (xmin, ymin, xmax, ymax,
                                  a, b, c2, nbs, steps, repx, repy));
       }
-      else return (controlable ?
+      else return (adaptive ?
                    (DirectionalScanner *)
                    new AdaptiveScannerO1 (xmin, ymin, xmax, ymax,
                           a, b, c2, nbs, steps, p1.x (), p1.y ()) :
@@ -90,7 +90,7 @@ DirectionalScanner *ScannerProvider::getScanner (Pt2i p1, Pt2i p2,
         return (new VHScannerO2 (xmin, ymin, xmax, ymax,
                                  a, b, c2, nbs, steps, repx, repy));
       }
-      else return (controlable ?
+      else return (adaptive ?
                    (DirectionalScanner *)
                    new AdaptiveScannerO2 (xmin, ymin, xmax, ymax,
                           a, b, c2, nbs, steps, p1.x (), p1.y ()) :
@@ -108,7 +108,7 @@ DirectionalScanner *ScannerProvider::getScanner (Pt2i p1, Pt2i p2,
         return (new VHScannerO8 (xmin, ymin, xmax, ymax,
                                  a, b, c2, nbs, steps, repx, repy));
       }
-      else return (controlable ?
+      else return (adaptive ?
                    (DirectionalScanner *)
                    new AdaptiveScannerO8 (xmin, ymin, xmax, ymax,
                           a, b, c2, nbs, steps, p1.x (), p1.y ()) :
@@ -125,7 +125,7 @@ DirectionalScanner *ScannerProvider::getScanner (Pt2i p1, Pt2i p2,
         return (new VHScannerO7 (xmin, ymin, xmax, ymax,
                                  a, b, c2, nbs, steps, repx, repy));
       }
-      else return (controlable ?
+      else return (adaptive ?
                    (DirectionalScanner *)
                    new AdaptiveScannerO7 (xmin, ymin, xmax, ymax,
                           a, b, c2, nbs, steps, p1.x (), p1.y ()) :
@@ -136,7 +136,7 @@ DirectionalScanner *ScannerProvider::getScanner (Pt2i p1, Pt2i p2,
 
 
 DirectionalScanner *ScannerProvider::getScanner (Pt2i centre, Vr2i normal,
-                                                 int length, bool controlable)
+                                                 int length, bool adaptive)
 {
   // Gets the steps position array
   int nbs = 0;
@@ -146,14 +146,6 @@ DirectionalScanner *ScannerProvider::getScanner (Pt2i centre, Vr2i normal,
   // Orients rightwards
   int a = normal.x ();
   int b = normal.y ();  // as equation is (ax + by = c)
-/*
-  last_scan_reversed = (a < 0 || (a == 0 && b < 0));
-  if (last_scan_reversed)
-  {
-    a = -a;
-    b = -b;
-  }
-*/
   last_scan_reversed = (b < 0 || (b == 0 && a < 0));
   if (a < 0 || (a == 0 && b < 0))
   {
@@ -164,7 +156,7 @@ DirectionalScanner *ScannerProvider::getScanner (Pt2i centre, Vr2i normal,
   // Builds and returns the appropriate scanner
   if (b < 0)
     if (-b > a)
-      return (controlable ?
+      return (adaptive ?
               (isOrtho ?
                (DirectionalScanner *)
                new VHScannerO1 (xmin, ymin, xmax, ymax,
@@ -179,7 +171,7 @@ DirectionalScanner *ScannerProvider::getScanner (Pt2i centre, Vr2i normal,
                                         a, b, nbs, steps,
                                         centre.x (), centre.y (), length));
     else
-      return (controlable ?
+      return (adaptive ?
               (isOrtho ?
                (DirectionalScanner *)
                new VHScannerO2 (xmin, ymin, xmax, ymax,
@@ -195,7 +187,7 @@ DirectionalScanner *ScannerProvider::getScanner (Pt2i centre, Vr2i normal,
                                         centre.x (), centre.y (), length));
   else
     if (b > a)
-      return (controlable ?
+      return (adaptive ?
               (isOrtho ?
                (DirectionalScanner *)
                new VHScannerO8 (xmin, ymin, xmax, ymax,
@@ -210,7 +202,7 @@ DirectionalScanner *ScannerProvider::getScanner (Pt2i centre, Vr2i normal,
                                         a, b, nbs, steps,
                                         centre.x (), centre.y (), length));
     else
-      return (controlable ?
+      return (adaptive ?
               (isOrtho ?
                (DirectionalScanner *)
                new VHScannerO7 (xmin, ymin, xmax, ymax,

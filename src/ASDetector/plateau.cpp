@@ -30,16 +30,17 @@
 const int Plateau::PLATEAU_RES_NONE = 0;
 const int Plateau::PLATEAU_RES_OK = 1;
 const int Plateau::PLATEAU_RES_NOT_ENOUGH_INPUT_PTS = -1;
-const int Plateau::PLATEAU_RES_NOT_ENOUGH_ALT_PTS = -2;
-const int Plateau::PLATEAU_RES_TOO_NARROW = -3;
-const int Plateau::PLATEAU_RES_NOT_ENOUGH_CNX_PTS = -4;
-const int Plateau::PLATEAU_RES_NO_BOUND_POS = -10;
-const int Plateau::PLATEAU_RES_OPTIMAL_HEIGHT_UNDER_USED = -11;
+const int Plateau::PLATEAU_RES_NO_BOUND_POS = -2;
+const int Plateau::PLATEAU_RES_NO_BS = -3;
+const int Plateau::PLATEAU_RES_NOT_ENOUGH_ALT_PTS = -4;
+const int Plateau::PLATEAU_RES_NOT_ENOUGH_CNX_PTS = -5;
+const int Plateau::PLATEAU_RES_TOO_LARGE_WIDENING = -6;
+const int Plateau::PLATEAU_RES_OPTIMAL_HEIGHT_UNDER_USED = -7;
+const int Plateau::PLATEAU_RES_IMPASSABLE_EVENT = -10;
+const int Plateau::PLATEAU_RES_TOO_LARGE_BS_TILT = -11;
 const int Plateau::PLATEAU_RES_TOO_LARGE_NARROWING = -12;
-const int Plateau::PLATEAU_RES_TOO_LARGE_WIDENING = -13;
-const int Plateau::PLATEAU_RES_NO_BS = -14;
-const int Plateau::PLATEAU_RES_TOO_LARGE_BS_TILT = -15;
-const int Plateau::PLATEAU_RES_OUT_OF_HEIGHT_REF = -16;
+const int Plateau::PLATEAU_RES_TOO_NARROW = -13;
+const int Plateau::PLATEAU_RES_OUT_OF_HEIGHT_REF = -14;
 
 
 Plateau::Plateau (PlateauModel *pmod)
@@ -246,13 +247,13 @@ bool Plateau::track (const std::vector<Pt2f> &ptsh,
                      float lstart, float lend, float lheight,
                      float cshift, int confdist)
 {
+  // Updates assigned reference pattern
+  s_ref = lstart;
+  e_ref = lend;
+  s_est = s_ref;
+  e_est = e_ref;
   if (confdist == 0) // initial detection only
   {
-    // Initializes plateau position
-    s_ref = lstart;
-    e_ref = lend;
-    s_est = s_ref;
-    e_est = e_ref;
     if (ptsh.empty ())
     {
       s_int = s_ref;
@@ -261,21 +262,11 @@ bool Plateau::track (const std::vector<Pt2f> &ptsh,
       e_ext = e_ref + pmod->maxLength ();
       h_min = 0.0f;
       h_ref = 0.0f;
-      status = PLATEAU_RES_NOT_ENOUGH_INPUT_PTS;
-      return false;
     }
-    h_ref = (ptsh.front().y () + ptsh.back().y ()) / 2
-            - pmod->thicknessTolerance () / 2;
+    else h_ref = (ptsh.front().y () + ptsh.back().y ()) / 2
+                - pmod->thicknessTolerance () / 2;
   }
-  else
-  {
-    // Updates assigned reference pattern
-    s_ref = lstart;
-    e_ref = lend;
-    h_ref = lheight;
-    s_est = s_ref;
-    e_est = e_ref;
-  }
+  else h_ref = lheight;
   sdist = 0.0f;
   edist = 0.0f;
 
@@ -498,7 +489,399 @@ bool Plateau::track (const std::vector<Pt2f> &ptsh,
     setBounds (ptsh);
     setPosition (confdist * pmod->widthMoveTolerance ());
   }
+  delete bsp;
+  return (status == PLATEAU_RES_OK);
+}
 
+
+// AMRELnet version
+bool Plateau::track (const std::vector<Pt2f> &ptsh, Plateau *refp,
+                     int confdist, float cshift, float l12)
+{
+  if (confdist == 0)
+  {
+    // Initializes plateau position
+    s_ref = 0.0f;
+    e_ref = l12;
+    // s_est = ptsh.front().x (); // potentially restrictive
+    // e_est = ptsh.back().x ();
+    s_est = s_ref;
+    e_est = e_ref;
+    if (ptsh.empty ())
+    {
+      s_int = s_ref;
+      e_int = e_ref;
+      s_ext = s_ref - pmod->maxLength ();
+      e_ext = e_ref + pmod->maxLength ();
+      h_min = 0.0f;
+      h_ref = 0.0f;
+      status = PLATEAU_RES_NOT_ENOUGH_INPUT_PTS;
+      return false;
+    }
+    h_ref = (ptsh.front().y () + ptsh.back().y ()) / 2
+            - pmod->thicknessTolerance () / 2;
+  }
+  else
+  {
+    // Updates assigned reference pattern
+    if (refp->possible ())
+    {
+      s_ref = refp->s_est;
+      e_ref = refp->e_est;
+    }
+    else
+    {
+      s_ref = refp->s_ref;
+      e_ref = refp->e_ref;
+    }
+    if (pmod->isDeviationPredictionOn () || ! refp->possible ())
+    {
+      s_ref += refp->dev_est;
+      e_ref += refp->dev_est;
+    }
+    s_est = s_ref;
+    e_est = e_ref;
+    h_ref = (refp->status == PLATEAU_RES_OK ? refp->h_min : refp->h_ref);
+    if (pmod->isSlopePredictionOn () || refp->status != PLATEAU_RES_OK)
+      h_ref += refp->slope_est;
+    if (ptsh.empty ())
+    {
+      s_int = s_ref;
+      e_int = e_ref;
+      s_ext = s_ref - pmod->maxLength ();
+      e_ext = e_ref + pmod->maxLength ();
+      h_min = h_ref;
+      status = PLATEAU_RES_NOT_ENOUGH_INPUT_PTS;
+      return false;
+    }
+  }
+  sdist = 0.0f;
+  edist = 0.0f;
+
+  // Handles too short sequences
+  int lpt = (int) (ptsh.size ()) - 1;
+  if ((int) (ptsh.size ()) < pmod->minCountOfPoints ())
+  {
+    float center = (s_ref + e_ref) / 2;
+    int pnum = 0;
+    if (confdist == 0) // get horizontal sequence nearer from center
+    {
+      int ict = 0;
+      std::vector<Pt2f>::const_iterator it = ptsh.begin ();
+      float dct = center - it->x ();
+      bool search = (dct >= 0.0f);
+      it ++;
+      while (search && it != ptsh.end ()) // get point nearer from center
+      {
+        float d2 = center - it->x ();
+        if (d2 < 0.0f)
+        {
+          d2 = - d2;
+          search = false;
+        }
+        if (d2 < dct)
+        {
+          ict = pnum;
+          dct = d2;
+        }
+        pnum ++;
+        it ++;
+      }
+      pnum = ict;
+      e_num = ict;
+      it = ptsh.begin () + ict;
+      h_min = it->y ();
+      h_ref = h_min;
+      search = true;
+      it ++;
+      pnum ++;
+      while (search && it != ptsh.end ()) // get end points at same altitude
+      {
+        if (it->y () < h_ref - confdist * pmod->slopeTolerance ()
+            || it->y () > h_ref + pmod->thicknessTolerance ()
+                          + confdist * pmod->slopeTolerance ())
+          search = false;
+        else e_num = pnum;
+        pnum ++;
+        it ++;
+      }
+      pnum = ict;
+      s_num = ict;
+      if (s_num != 0)
+      {
+        it = ptsh.begin () + ict;
+        search = true;
+        do // get start points at same altitude
+        {
+          it --;
+          pnum --;
+          if (it->y () < h_ref - confdist * pmod->slopeTolerance ()
+              || it->y () > h_ref + pmod->thicknessTolerance ()
+                            + confdist * pmod->slopeTolerance ())
+            search = false;
+          else s_num = pnum;
+        }
+        while (search && it != ptsh.begin ());
+      }
+    }
+    else // get ref height sequence almost nearer from center
+    {
+      bool in = false, out = false;
+      std::vector<Pt2f>::const_iterator it = ptsh.begin ();
+      while (it != ptsh.end ())
+      {
+        if (it->y () < h_ref - confdist * pmod->slopeTolerance ()
+            || it->y () > h_ref + pmod->thicknessTolerance ()
+                          + confdist * pmod->slopeTolerance ())
+        {
+          if (in && ! out)
+          {
+            out = true;
+            e_num = pnum - 1;
+          }
+        }
+        else
+        {
+          if (! in || (out && it->x () < center))
+          {
+            in = true;
+            out = false;
+            s_num = pnum;
+          }
+        }
+        if (in && ! out)
+        {
+          out = true;
+          e_num = lpt;
+        }
+        pnum ++;
+        it ++;
+      }
+      s_int = ptsh[s_num].x ();
+      e_int = ptsh[e_num].x ();
+    }
+    s_ext = (s_num == 0 ? s_int - pmod->maxLength () : ptsh[s_num - 1].x ());
+    e_ext = (e_num == lpt ? e_int + pmod->maxLength () : ptsh[e_num + 1].x ());
+    s_est = (s_int + s_ext) / 2;
+    e_est = (e_int + e_ext) / 2;
+    if (e_ext - s_ext < pmod->minLength ())
+    {
+      status = PLATEAU_RES_TOO_NARROW;
+      return false;
+    }
+    status = PLATEAU_RES_NOT_ENOUGH_INPUT_PTS;
+    return false;
+  }
+
+  // Translates to int and finds start point
+  float lcenter = (s_est + e_est) / 2 + cshift;
+  int icenter = (int) (lcenter * 1000 + 0.5f);
+  int ifirst = 0;
+  int i = 0;
+  bool searching = true;
+  std::vector<Pt2i> ptsi;
+  std::vector<Pt2f>::const_iterator it = ptsh.begin ();
+  locheight = it->y ();
+  while (it != ptsh.end ())
+  {
+    int x = (int) (it->x () * 1000 + (it->x () > 0 ? - 0.5f : 0.5f));
+    if (searching && x > icenter)
+    {
+      searching = false;
+      if (i == 0) ifirst = 0;
+      else if (x - icenter > icenter - ptsi.back().x ()) ifirst = i - 1;
+      else ifirst = i;
+    }
+    ptsi.push_back (Pt2i (x, (int) ((it->y () - locheight) * 1000
+                                    + (it->y () < locheight ? - 0.5f : 0.5f))));
+    i ++;
+    it ++;
+  }
+  int myend = i;
+
+  // Checks the reference height
+  if ((confdist != 0)
+      && (ptsh[ifirst].y () < h_ref - confdist * pmod->slopeTolerance ()
+          || ptsh[ifirst].y () > h_ref + pmod->thicknessTolerance ()
+                                 + confdist * pmod->slopeTolerance ()))
+  {
+    s_int = ptsh[ifirst].y ();
+    e_int = ptsh[ifirst].y ();
+    s_ext = (ifirst == 0 ? s_int - pmod->maxLength ()
+                         : ptsh[ifirst - 1].x ());
+    e_ext = (ifirst == lpt ? e_int + pmod->maxLength ()
+                           : ptsh[ifirst + 1].x ());
+    s_est = (s_int + s_ext) / 2;
+    e_est = (e_int + e_ext) / 2;
+    status = PLATEAU_RES_OUT_OF_HEIGHT_REF;
+    return false;
+  }
+
+  // Creates a putative blurred segment
+  int stol = (int) (pmod->thicknessTolerance () * 1000 + 0.5f);
+  BSProto *bsp = new BSProto (stol, ptsi[ifirst]);
+
+  // Extends the blurred segment
+  e_num = ifirst + 1;
+  s_num = ifirst - 1;
+  int isLarge = true;
+  int pinch_l = (int) (pmod->minLength () * 1000 + 0.5f);
+  int lstop = 0, rstop = 0;
+  bool scanningRight = (s_num >= 0);
+  bool scanningLeft = (e_num < myend);
+  int lextent = 0, rextent = 0;
+  std::vector<int> bsadds;
+  while (scanningRight || scanningLeft)
+  {
+    while (scanningRight && (rextent <= lextent || ! scanningLeft))
+    {
+      bool added = bsp->addRightSorted (ptsi[s_num]);
+      rextent = ptsi[ifirst].x () - ptsi[s_num].x ();
+      if (isLarge && rextent + lextent > pinch_l)
+      {
+        EDist pinch_th (bsp->digitalThickness());
+        int nth = (int) (((float) pinch_th.num ()) / pinch_th.den ());
+        bsp->setMaxWidth (EDist (nth + pmod->bsPinchMargin (), 1));
+        isLarge = false;
+      }
+      if (added)
+      {
+        rstop = 0;
+        bsadds.push_back (s_num);
+      }
+      else if (++rstop > pmod->maxInterruption ()) scanningRight = false;
+      if (--s_num < 0) scanningRight = false;
+    }
+    while (scanningLeft && (lextent <= rextent || ! scanningRight))
+    {
+      bool added = bsp->addLeftSorted (ptsi[e_num]);
+      lextent = ptsi[e_num].x () - ptsi[ifirst].x ();
+      if (isLarge && rextent + lextent > pinch_l)
+      {
+        EDist pinch_th (bsp->digitalThickness());
+        int nth = (int) (((float) pinch_th.num ()) / pinch_th.den ());
+        bsp->setMaxWidth (EDist (nth + pmod->bsPinchMargin (), 1));
+        isLarge = false;
+      }
+      if (added)
+      {
+        lstop = 0;
+        bsadds.push_back (e_num);
+      }
+      else if (++lstop > pmod->maxInterruption ()) scanningLeft = false;
+      if (++e_num >= myend) scanningLeft = false;
+    }
+  }
+  if (rstop) bsp->removeRight (rstop);
+  if (lstop) bsp->removeLeft (lstop);
+  s_num += rstop + 1;
+  e_num -= lstop + 1;
+
+  // Tests
+  s_ext = (s_num == 0 ? ptsh[0].x () - pmod->maxLength ()
+                      : ptsh[s_num - 1].x ());
+  e_ext = (e_num == lpt ? ptsh[lpt].x () + pmod->maxLength ()
+                        : ptsh[e_num + 1].x ());
+  if (e_ext - s_ext < pmod->minLength ())
+  {
+    s_int = ptsh[s_num].x ();
+    e_int = ptsh[e_num].x ();
+    s_est = (s_int + s_ext) / 2;
+    e_est = (e_int + e_ext) / 2;
+    status = PLATEAU_RES_TOO_NARROW;
+    delete bsp;
+    return false;
+  }
+  if (1 + e_num - s_num < pmod->minCountOfPoints ())
+  {
+    s_int = ptsh[s_num].x ();
+    e_int = ptsh[e_num].x ();
+    s_est = (s_int + s_ext) / 2;
+    e_est = (e_int + e_ext) / 2;
+    status = PLATEAU_RES_NOT_ENOUGH_ALT_PTS;
+    delete bsp;
+    return false;
+  }
+
+  // Checks and possibly shortens blurred segment
+  if (bsp->isNotFlat ())
+  {
+    Pt2i bslastr = bsp->getLastRight ();
+    Pt2i bslastl = bsp->getLastLeft ();
+    bool antir = bsp->isAntipodal (bslastr);
+    bool antil = bsp->isAntipodal (bslastl);
+    if (antir || antil)
+    {
+      BSProto *bsp2 = new BSProto (stol, ptsi[ifirst]);
+      bsp2->setMaxWidth (bsp->getMaxWidth ());
+      std::vector<int>::iterator it = bsadds.begin ();
+      while (it != bsadds.end ())
+      {
+        if (*it < ifirst)
+        {
+          if (! (antir && ptsi[*it].equals (bslastr)))
+            bsp2->addRightSorted (ptsi[*it]);
+        }
+        else
+        {
+          if (! (antil && ptsi[*it].equals (bslastl)))
+            bsp2->addLeftSorted (ptsi[*it]);
+        }
+        it ++;
+      }
+      delete bsp;
+      bsp = bsp2;
+    }
+  }
+
+  // Analyses the BS
+  BlurredSegment *bs = bsp->endOfBirth ();
+  if (bs != NULL)
+  {
+    dss = bs->holdSegment ();
+    delete bs;
+    Vr2i dssvec = dss->supportVector ();
+    int dssvx = (dssvec.x () < 0 ? - dssvec.x () : dssvec.x ());
+    int dssvy = (dssvec.y () < 0 ? - dssvec.y () : dssvec.y ());
+    if (dssvx * pmod->bsMaxTilt () < dssvy * 100)
+    {
+      status = PLATEAU_RES_TOO_LARGE_BS_TILT;
+      s_int = ptsh[s_num].y ();
+      e_int = ptsh[e_num].y ();
+      s_ext = (s_num == 0 ? s_int - pmod->maxLength ()
+                          : ptsh[s_num - 1].x ());
+      e_ext = (e_num == lpt ? e_int + pmod->maxLength ()
+                            : ptsh[e_num + 1].x ());
+      s_est = (s_int + s_ext) / 2;
+      e_est = (e_int + e_ext) / 2;
+      delete bsp;
+      return false;
+    }
+    int a, b, c;
+    dss->getCentralLine (a, b, c);
+    int ihmin = (c - a * icenter) / b - stol / 2;
+    h_min = locheight + ihmin * 0.001f;
+  }
+  else
+  {
+    status = PLATEAU_RES_NO_BS;
+    s_int = ptsh[s_num].y ();
+    e_int = ptsh[e_num].y ();
+    s_ext = (s_num == 0 ? s_int - pmod->maxLength () : ptsh[s_num - 1].x ());
+    e_ext = (e_num == lpt ? e_int + pmod->maxLength () : ptsh[e_num + 1].x ());
+    s_est = (s_int + s_ext) / 2;
+    e_est = (e_int + e_ext) / 2;
+    delete bsp;
+    return false;
+  }
+
+  status = PLATEAU_RES_OK;
+  if (confdist == 0) setFirstBounds (ptsh);
+  else
+  {
+    setBounds (ptsh);
+    setPosition (confdist * pmod->widthMoveTolerance ());
+  }
   delete bsp;
   return (status == PLATEAU_RES_OK);
 }
@@ -539,6 +922,7 @@ void Plateau::setFirstBounds (const std::vector<Pt2f> &ptsh)
   s_est = s_int;
   e_est = e_int;
 }
+
 
 void Plateau::setBounds (const std::vector<Pt2f> &ptsh)
 {
@@ -694,6 +1078,70 @@ void Plateau::setPosition (float wmt)
 }
 
 
+bool Plateau::isConnectedTo (Plateau *next)
+{
+  float ct = (s_int + e_int) / 2;
+  if (ct < next->s_est || ct > next->e_est) return false;
+  ct = (next->s_int + next->e_int) / 2;
+  return (ct >= s_est && ct <= e_est);
+}
+
+
+bool Plateau::fit (Plateau *next, Plateau *orig, int cdist)
+{
+  s_est = next->s_int + (orig->s_int - next->s_int) / cdist;
+  e_est = next->e_int + (orig->e_int - next->e_int) / cdist;
+  if (s_est < s_ext)
+  {
+    s_est = s_ext;
+    if (e_est - s_est < pmod->minLength ()) e_est = s_est + pmod->minLength ();
+  }
+  if (e_est > e_ext)
+  {
+    e_est = e_ext;
+    if (e_est - s_est < pmod->minLength ()) s_est = e_est - pmod->minLength ();
+  }
+  // Enforces connexity constraint
+  float cte = (next->s_int + next->e_int) / 2;
+  if (cte < s_est || cte > e_est) return false;
+  if (cdist == 2)
+  {
+    cte = (orig->s_int + orig->e_int) / 2;
+    if (cte < s_est || cte > e_est) return false;
+  }
+/*
+  if (next->e_int < s_est || next->s_int > e_est) return false;
+  if (cdist == 2
+      && (orig->e_int < s_est || orig->s_int > e_est)) return false;
+*/
+  s_int = s_est;
+  e_int = e_est;
+  return true;
+}
+
+
+bool Plateau::sticksTo (float sts, float ste, float cte1, float cte2)
+{
+  s_est = sts;
+  e_est = ste;
+  if (s_est < s_ext)
+  {
+    s_est = s_ext;
+    if (e_est - s_est < pmod->minLength ()) e_est = s_est + pmod->minLength ();
+  }
+  if (e_est > e_ext)
+  {
+    e_est = e_ext;
+    if (e_est - s_est < pmod->minLength ()) s_est = e_est - pmod->minLength ();
+  }
+  if (cte1 < s_est || cte1 > e_est) return false;
+  if (cte2 < s_est || cte2 > e_est) return false;
+  s_int = s_est;
+  e_int = e_est;
+  return true;
+}
+
+
 float Plateau::getDSSwidth () const
 {
   return (dss == NULL ? 0.0f : dss->width () * 0.001f / dss->period ());
@@ -754,12 +1202,18 @@ bool Plateau::thinerThan (Plateau *pl) const
 /*
 void Plateau::trace () const
 {
-  std::cout << "SDIST = " << sdist << " et EDIST = " << edist << std::endl;
+  std::cout << "H_REF = " << h_ref << " et H_MIN = " << h_min << std::endl;
   std::cout << "S_REF = " << s_ref << " et E_REF = " << e_ref << std::endl;
   std::cout << "S_INT = " << s_int << " et E_INT = " << e_int << std::endl;
+  std::cout << "S_EXT = " << s_ext << " et E_EXT = " << e_ext << std::endl;
+  std::cout << "S_NUM = " << s_num << " et E_NUM = " << e_num << std::endl;
+  std::cout << "S_EST = " << s_est << " et E_EST = " << e_est << std::endl;
   std::cout << "S_PR = " << (s_int - s_ext)
             << " et E_PR = " << (e_ext - e_int) << std::endl;
-  std::cout << "W_OK = " << w_ok << std::endl;
+  std::cout << "S_OK = " << s_ok << ", E_OK = " << e_ok
+            << " et W_OK = " << w_ok << std::endl;
+  std::cout << "SDIST = " << sdist << " et EDIST = " << edist << std::endl;
+  std::cout << "WIDTH_CHANGE = " << width_change << std::endl;
 }
 
 void Plateau::traceExt (const std::vector<Pt2f> &ptsh) const

@@ -33,7 +33,7 @@
 /** 
  * @class CTrackDetector ctrackdetector.h
  * \brief Carriage track detector.
- * All calculations in meters, but not input ip1, ip2, fp1, fp2.
+ * All calculations in meters, but input ip1, ip2, fp1, fp2 in pixels.
  */
 class CTrackDetector
 {
@@ -57,6 +57,8 @@ public:
   static const int RESULT_FAIL_TOO_HECTIC_PLATEAUX;
   /** Extraction failure : minimal plateaux density not fillfiled. */
   static const int RESULT_FAIL_TOO_SPARSE_PLATEAUX;
+  /** Extraction failure : disconnected plateaux. */
+  static const int RESULT_FAIL_DISCONNECT;
 
 
   /**
@@ -141,6 +143,21 @@ public:
    * \brief Sets the status of automatic detection modality.
    */
   inline void setAutomatic (bool status) { auto_p = status; }
+
+  /**
+   * \brief Returns the status of connectivity constraint.
+   */
+  inline bool isConnecting () const { return connect_on; }
+
+  /**
+   * \brief Switches on or off the connectivity constraint.
+   */
+  inline void switchConnecting () { connect_on = ! connect_on; }
+
+  /**
+   * \brief Sets the status of connectivity constraint.
+   */
+  inline void setConnecting (bool status) { connect_on = status; }
 
   /**
    * \brief Sets the profile registration status on or off.
@@ -306,6 +323,8 @@ private :
   float csize;
   /** Automatic extraction modality. */
   bool auto_p;
+  /** Connectivity constraint. */
+  bool connect_on;
   /** Profile registration status. */
   bool profileRecordOn;
 
@@ -357,6 +376,8 @@ private :
   bool *lhok;
   /** Last height values. */
   float *lht;
+  /** Initially found reference plateau number. */
+  int initial_ref;
   /** Initially found reference start position. */
   float initial_refs;
   /** Initially found reference end position. */
@@ -391,7 +412,7 @@ private :
   void detect ();
 
   /**
-   * \brief Carries on carriage track detection.
+   * \brief Performs a carriage track detection.
    * @param onright Extension direction.
    * @param reversed Indicates whether scans are reversed.
    * @param exlimit Limit of plateaux extension.
@@ -408,6 +429,24 @@ private :
               DirectionalScanner *ds, DirectionalScanner *disp,
               Pt2f p1f, Vr2f p12, float l12,
               float refs, float refe, float refh);
+
+  /**
+   * \brief Performs a on carriage track detection.
+   * Ensures connexity between adjacent plateaux.
+   * Specific version for road network extraction.
+   * @param onright Extension direction.
+   * @param reversed Indicates whether scans are reversed.
+   * @param exlimit Limit of plateaux extension.
+   * @param ds Directional scanner used for detection.
+   * @param disp Directional scanner used for display.
+   * @param p1f Input reference point (in meters).
+   * @param p12 Input stroke vector (in meters).
+   * @param l12 Reference stroke length (in meters).
+   * @param ref Reference plateau.
+   */
+  void track (bool onright, bool reversed, int exlimit,
+              DirectionalScanner *ds, DirectionalScanner *disp,
+              Pt2f p1f, Vr2f p12, float l12, Plateau *ref);
 
   /**
    * \brief Resets bounds and center position and height registers.
@@ -470,8 +509,6 @@ private :
    * \brief Tests shift computing between scans.
    */
   void testScanShiftExtraction () const;
-
-  int scanShift (float pcenter);
 
 };
 #endif

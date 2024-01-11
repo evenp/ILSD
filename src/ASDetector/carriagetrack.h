@@ -196,26 +196,48 @@ public:
   std::vector<Pt2f> *getProfile (int num);
 
   /**
-   * \brief Returns the carriage track points.
-   * @param pts Pointer to a vector to fill with carriage track points in.
+   * \brief Fills a vector with all the carriage track points.
+   * @param pts Pointer to a vector to fill with carriage track points.
    * @param acc Plateau acceptation modality.
+   * @param imw Detection image width.
+   * @param imh Detection image height.
    * @param iratio Image to meter ratio : inverse of cell size.
-   * @param pp1 Input stroke start point.
-   * @param pp2 Input stroke end point.
    */
-  void getPoints (std::vector<Pt2i> *pts, bool acc, float iratio,
-                  const Pt2i &pp1, const Pt2i &pp2);
+  void getPoints (std::vector<Pt2i> *pts, bool acc,
+                  int imw, int imh, float iratio);
+
+  /**
+   * \brief Fills a vector with all the carriage track points for each plateau.
+   * @param pts Pointer to a vector to fill with carriage track point lines.
+   * @param acc Plateau acceptation modality.
+   * @param imw Detection image width.
+   * @param imh Detection image height.
+   * @param iratio Image to meter ratio : inverse of cell size.
+   */
+  void getPoints (std::vector<std::vector<Pt2i> > *pts, bool acc,
+                  int imw, int imh, float iratio);
 
   /**
    * \brief Returns the connected carriage track points.
    * @param pts Pointer to a vector to fill with carriage track points in.
    * @param acc Plateau acceptation modality.
-   * @param pp1 Input stroke start point.
-   * @param pp2 Input stroke end point.
+   * @param imw Detection image width.
+   * @param imh Detection image height.
    * @param iratio Image to meter ratio : inverse of cell size.
    */
   void getConnectedPoints (std::vector<Pt2i> *pts, bool acc,
-                           const Pt2i &pp1, const Pt2i &pp2, float iratio);
+                           int imw, int imh, float iratio);
+
+  /**
+   * \brief Returns the connected carriage track points for each plateau.
+   * @param pts Pointer to a vector to fill with carriage track point lines.
+   * @param acc Plateau acceptation modality.
+   * @param imw Detection image width.
+   * @param imh Detection image height.
+   * @param iratio Image to meter ratio : inverse of cell size.
+   */
+  void getConnectedPoints (std::vector<std::vector<Pt2i> > *pts,
+                           bool acc, int imw, int imh, float iratio);
 
   /**
    * \brief Prunes track tails plateaux.
@@ -231,7 +253,7 @@ public:
   int leftEnd ();
 
   /**
-   * \brief Returns the last plateau number on right side.
+   * \brief Returns the last plateau POSITIVE number on right side.
    */
   int rightEnd ();
 
@@ -294,25 +316,6 @@ private :
   /** DTM cell size: pixel to cloud point (meter) ratio. */
   float cell_size;
 
-
-  /**
-   * \brief Returns the connected plateau points.
-   * @param pts Pointer to a vector to fill with carriage track points in.
-   * @param acc Plateau acceptation modality.
-   * @param iratio Image to meter ratio : inverse of cell size.
-   * @param num Plateau number.
-   * @param lacks Count of missing plateau since last processed.
-   * @param slast Pointer to last processed plateau start position.
-   * @param elast Pointer to last processed plateau end position.
-   * @param rev Plateaux reversed status.
-   * @param pp1 Input stroke start point.
-   * @param p12 Input stroke vector.
-   * @param l12 Input stroke length.
-   */
-  int getConnectedPlateau (std::vector<Pt2i> *pts, bool acc,
-                           int num, int lacks, float *slast, float *elast,
-                           bool rev, float iratio,
-                           Pt2i pp1, Vr2i p12, float l12);
 
   /**
    * \brief Adds a plateau center to the given vector of points.

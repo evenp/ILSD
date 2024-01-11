@@ -141,6 +141,18 @@ public:
   int skipRight (std::vector<Pt2i> &scan, int skip);
 
   /**
+   * \brief Skips scans to the left.
+   * @param skip Skip length.
+   */
+  void skipLeft (int skip);
+
+  /**
+   * \brief Skips scans to the right.
+   * @param skip Skip length.
+   */
+  void skipRight (int skip);
+
+  /**
    * \brief Returns the scanner coordinates of given point.
    * Scanner coordinates are the scan index and the position in the scan.
    * @param pt Image coordinates of the point.

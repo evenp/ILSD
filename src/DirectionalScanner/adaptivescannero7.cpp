@@ -329,6 +329,18 @@ int AdaptiveScannerO7::skipRight (std::vector<Pt2i> &scan, int skip)
 }
 
 
+void AdaptiveScannerO7::skipLeft (int skip)
+{
+  lcy += skip - 1;
+}
+
+
+void AdaptiveScannerO7::skipRight (int skip)
+{
+  rcy -= skip - 1;
+}
+
+
 void AdaptiveScannerO7::bindTo (int a, int b, int c)
 {
   if (a < 0)

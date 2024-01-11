@@ -44,24 +44,26 @@ public:
   static const int PLATEAU_RES_OK;
   /** Detection status : failed, not enough points in input scan. */
   static const int PLATEAU_RES_NOT_ENOUGH_INPUT_PTS;
-  /** Detection status : failed, length lower than minimal awaited value. */
-  static const int PLATEAU_RES_TOO_NARROW;
+  /** Detection status : failed, both bounds undetected. */
+  static const int PLATEAU_RES_NO_BOUND_POS;
+  /** Detection status : failed, no blurred segment built. */
+  static const int PLATEAU_RES_NO_BS;
   /** Detection status : failed, not enough points with same height. */
   static const int PLATEAU_RES_NOT_ENOUGH_ALT_PTS;
   /** Detection status : failed, not enough successive points. */
   static const int PLATEAU_RES_NOT_ENOUGH_CNX_PTS;
-  /** Detection status : failed, both bounds undetected. */
-  static const int PLATEAU_RES_NO_BOUND_POS;
-  /** Detection status : failed, too few optimal height points used. */
-  static const int PLATEAU_RES_OPTIMAL_HEIGHT_UNDER_USED;
-  /** Detection status : failed, too large width narrowing. */
-  static const int PLATEAU_RES_TOO_LARGE_NARROWING;
   /** Detection status : failed, too large width widening. */
   static const int PLATEAU_RES_TOO_LARGE_WIDENING;
-  /** Detection status : failed, no blurred segment built. */
-  static const int PLATEAU_RES_NO_BS;
+  /** Detection status : failed, too few optimal height points used. */
+  static const int PLATEAU_RES_OPTIMAL_HEIGHT_UNDER_USED;
+  /** Detection status : start of impassable failure causes. */
+  static const int PLATEAU_RES_IMPASSABLE_EVENT;
   /** Detection status : failed, too large blurred segment tilt. */
   static const int PLATEAU_RES_TOO_LARGE_BS_TILT;
+  /** Detection status : failed, too large width narrowing. */
+  static const int PLATEAU_RES_TOO_LARGE_NARROWING;
+  /** Detection status : failed, length lower than minimal awaited value. */
+  static const int PLATEAU_RES_TOO_NARROW;
   /** Detection status : failed, central point out of height reference. */
   static const int PLATEAU_RES_OUT_OF_HEIGHT_REF;
 
@@ -111,9 +113,27 @@ public:
               float cshift, int confdist);
 
   /**
+   * \brief Detects the plateau in a scan knowing the neighboring plateau.
+   * Ensures connexity between adjacent plateaux.
+   * Specific version for road network extraction.
+   * @param ptsh Scan points sorted by increasing distance to scan start bound.
+   * @param refp Reference plateau (NULL if first detection)
+   * @param confdist Distance to last reliable plateau (0 if first detection).
+   * @param cshift Reference center shift.
+   */
+  bool track (const std::vector<Pt2f> &ptsh, Plateau *refp,
+              int confdist, float cshift, float l12 = 0.0f);
+
+  /**
    * \brief Provides plateau detection status.
    */
   inline int getStatus () const { return status; }
+
+  /**
+   * \brief Indicates whether the section can not be a road plateau.
+   */
+  inline bool impassable () const {
+    return (status < PLATEAU_RES_IMPASSABLE_EVENT); }
 
   /**
    * \brief Checks if detection failure does not come from a low point density.
@@ -319,6 +339,37 @@ public:
    */
   inline bool contains (float pos) const {
     return (pos > s_ext && pos < e_ext); }
+
+  /**
+   * \brief Checks connectivity to a next plateau.
+   * Internal center should lie within next plateau internal bounds
+   * or next plateau center should lie within internal bounds.
+   * @param next Reference to next plateau.
+   */
+  bool isConnectedTo (Plateau *next);
+
+  /**
+   * \brief Fits plateau bounds to next plateau towards a distant origin.
+   * Keeps within internal bounds, maintains minimal length,
+   *   and enforces connexity constraints.
+   * Returns whether this operation is possible.
+   * @param next Reference to next plateau.
+   * @param orig Reference to origin plateau.
+   * @param cdist Distance between next and origin plateaux.
+   */
+  bool fit (Plateau *next, Plateau *orig, int cdist);
+
+  /**
+   * \brief Sticks plateau bounds to given positions.
+   * Stays within external bounds, maintains minimal length,
+   *   and enforces connexity constraints.
+   * Returns whether this operation is possible.
+   * @param sts Start position.
+   * @param ste End position.
+   * @param cte1 First connexity constraint.
+   * @param cte2 Second connexity constraint.
+   */
+  bool sticksTo (float sts, float ste, float cte1, float cte2);
 
   /**
    * \brief Returns the vertical width of the plateau enclosing DSS.

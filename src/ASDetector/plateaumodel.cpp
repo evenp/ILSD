@@ -52,6 +52,7 @@ const float PlateauModel::MAX_WIDTH_MOVE_TOLERANCE = 6.0f;
 const float PlateauModel::PLATEAU_BOUND_ACCURACY = 0.5f;
 const float PlateauModel::MIN_POS_TOLERANCE = 0.05f;
 const float PlateauModel::OPT_HEIGHT_MIN_USE = 0.7f;
+const float PlateauModel::DEFAULT_FIRST_PLATEAU_SEARCH_DISTANCE = 1.0f;
 const float PlateauModel::DEFAULT_PLATEAU_SEARCH_DISTANCE = 1.0f;
 
 const float PlateauModel::HEIGHT_INCREMENT = 0.05f;
@@ -67,6 +68,7 @@ const int PlateauModel::DEFAULT_TAIL_MIN_SIZE = 10;
 
 PlateauModel::PlateauModel ()
 {
+  netbuild_on = false;
   deviation_prediction_on = false;
   slope_prediction_on = false;
   min_length = DEFAULT_MIN_LENGTH;
@@ -77,6 +79,7 @@ PlateauModel::PlateauModel ()
   width_move_tolerance = DEFAULT_PLATEAU_WIDTH_MOVE_TOLERANCE;
   opt_height_min_use = OPT_HEIGHT_MIN_USE;
   bs_max_tilt = DEFAULT_BS_MAX_TILT;
+  plateau_search_distance = DEFAULT_PLATEAU_SEARCH_DISTANCE;
   tail_min_size = DEFAULT_TAIL_MIN_SIZE;
 }
 
@@ -194,6 +197,13 @@ void PlateauModel::setBSmaxTilt (int val)
 }
 
 
+void PlateauModel::setPlateauSearchDistance (float val)
+{
+  plateau_search_distance = val;
+  if (val < 0.1f) plateau_search_distance = 0.1f;
+}
+
+
 void PlateauModel::incTailMinSize (int inc)
 {
   setTailMinSize (tail_min_size + inc);
@@ -203,15 +213,4 @@ void PlateauModel::setTailMinSize (int val)
 {
   tail_min_size = val;
   if (tail_min_size < 0) tail_min_size = 0;
-}
-
-
-void PlateauModel::switchDeviationPrediction ()
-{
-  deviation_prediction_on = ! deviation_prediction_on;
-}
-
-void PlateauModel::switchSlopePrediction ()
-{
-  slope_prediction_on = ! slope_prediction_on;
 }

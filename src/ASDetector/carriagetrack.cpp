@@ -23,7 +23,9 @@
 */
 
 #include "carriagetrack.h"
+#include "scannerprovider.h"
 #include <cmath>
+#include <algorithm>
 
 
 const float CarriageTrack::MIN_WIDTH = 2.0f;
@@ -35,6 +37,8 @@ CarriageTrack::CarriageTrack ()
   status = 1;   // OK
   curright = NULL;
   curleft = NULL;
+  seed_length = 1.0f;
+  cell_size = 1.0f;
 }
 
 
@@ -357,150 +361,338 @@ std::vector<Pt2f> *CarriageTrack::getProfile (int num)
 }
 
 
-void CarriageTrack::getPoints (std::vector<Pt2i> *pts, bool acc, float iratio,
-                               const Pt2i &pp1, const Pt2i &pp2)
+void CarriageTrack::getPoints (std::vector<Pt2i> *pts, bool acc,
+                               int imw, int imh, float iratio)
 {
-  Plateau *pl = plateau (0);
-  if (pl != NULL)
+  ScannerProvider sp;
+  sp.setSize (imw, imh);
+  DirectionalScanner *ds = sp.getScanner (seed_p1, seed_p2, true);
+  bool rev = sp.isLastScanReversed ();
+  Vr2i seed (seed_p1.vectorTo (seed_p2));
+  int a = seed.x (), b = seed.y ();
+  if (a < 0.)
   {
-    Vr2i p12 = pp1.vectorTo (pp2);
-    float l12 = (float) (sqrt (p12.norm2 ()));
-    int mini = - getRightScanCount ();
-    int maxi = getLeftScanCount ();
-    for (int i = mini; i <= maxi; i++)
+    a = -a;
+    b = -b;
+  }
+  float l12 = (float) (sqrt (seed.norm2 ()));
+  Vr2f p12n (seed.x () / l12, seed.y () / l12);
+  int mini = - getRightScanCount ();
+  int maxi = getLeftScanCount ();
+
+  std::vector<Pt2i> pix;
+  std::vector<Pt2i>::iterator pit;
+  ds->first (pix);
+  int i = 0;
+  do
+  {
+    Plateau *pl = plateau (i);
+    if (i != 0)
     {
-      pl = plateau (i);
-      if (pl != NULL && (acc ? pl->isAccepted ()
-                             : pl->getStatus () == Plateau::PLATEAU_RES_OK))
+      ds->bindTo (a, b, pl->scanShift ());
+      if ((i > 0 && rev) || (i < 0 && ! rev)) ds->nextOnRight (pix);
+      else ds->nextOnLeft (pix);
+    }
+    if (pl != NULL && pl->inserted (acc))
+    {
+      float sint = pl->internalStart () * iratio;
+      float eint = pl->internalEnd () * iratio;
+      bool cherche = (sint < eint), in = false;
+      for (pit = pix.begin (); cherche && pit != pix.end (); pit ++)
       {
-        float sint = pl->internalStart () * iratio;
-        float eint = pl-> internalEnd () * iratio;
-        std::vector<Pt2i> *scan = getDisplayScan (i);
-        std::vector<Pt2i>::iterator it = scan->begin ();
-        while (it != scan->end ())
+        Vr2i p1x (seed_p1.vectorTo (*pit));
+        float dist = p12n.x () * p1x.x () + p12n.y () * p1x.y ();
+        if (! in)
         {
-          Vr2i p1x = pp1.vectorTo (*it);
-          float dist = (p12.x () * p1x.x () + p12.y () * p1x.y ()) / l12;
-          if (dist >= sint && dist < eint) pts->push_back (*it);
-          it ++;
+          if ((rev && dist < eint) || ((! rev) && dist >= sint)) in = true;
+        }
+        if (in)
+        {
+          if ((rev && dist < sint) || ((! rev) && dist >= eint))
+            cherche = false;
+          else pts->push_back (*pit);
         }
       }
     }
+    if (i == maxi) i = -1;
+    else i += (i < 0 ? -1 : 1);
   }
+  while (i >= mini);
+}
+
+
+void CarriageTrack::getPoints (std::vector<std::vector<Pt2i> > *pts, bool acc,
+                               int imw, int imh, float iratio)
+{
+  ScannerProvider sp;
+  sp.setSize (imw, imh);
+  DirectionalScanner *ds = sp.getScanner (seed_p1, seed_p2, true);
+  bool rev = sp.isLastScanReversed ();
+  Vr2i seed (seed_p1.vectorTo (seed_p2));
+  int a = seed.x (), b = seed.y ();
+  if (a < 0.)
+  {
+    a = -a;
+    b = -b;
+  }
+  float l12 = (float) (sqrt (seed.norm2 ()));
+  Vr2f p12n (seed.x () / l12, seed.y () / l12);
+  int mini = - getRightScanCount ();
+  int maxi = getLeftScanCount ();
+
+  std::vector<Pt2i> pix;
+  std::vector<Pt2i>::iterator pit;
+  ds->first (pix);
+  int i = 0;
+  do
+  {
+    Plateau *pl = plateau (i);
+    if (i != 0)
+    {
+      ds->bindTo (a, b, pl->scanShift ());
+      if ((i > 0 && rev) || (i < 0 && ! rev)) ds->nextOnRight (pix);
+      else ds->nextOnLeft (pix);
+    }
+    if (pl != NULL && pl->inserted (acc))
+    {
+      std::vector<Pt2i> line;
+      float sint = pl->internalStart () * iratio;
+      float eint = pl->internalEnd () * iratio;
+      bool cherche = (sint < eint), in = false;
+      for (pit = pix.begin (); cherche && pit != pix.end (); pit ++)
+      {
+        Vr2i p1x (seed_p1.vectorTo (*pit));
+        float dist = p12n.x () * p1x.x () + p12n.y () * p1x.y ();
+        if (! in)
+        {
+          if ((rev && dist < eint) || ((! rev) && dist >= sint)) in = true;
+        }
+        if (in)
+        {
+          if ((rev && dist < sint) || ((! rev) && dist >= eint))
+            cherche = false;
+          else line.push_back (*pit);
+        }
+      }
+      pts->push_back (line);
+    }
+    if (i == maxi) i = -1;
+    else i += (i < 0 ? -1 : 1);
+  }
+  while (i >= mini);
 }
 
 
 void CarriageTrack::getConnectedPoints (std::vector<Pt2i> *pts, bool acc,
-                              const Pt2i &pp1, const Pt2i &pp2, float iratio)
+                                        int imw, int imh, float iratio)
 {
-  Plateau *pl = plateau (0);
-  if (pl != NULL)
+  ScannerProvider sp;
+  sp.setSize (imw, imh);
+  DirectionalScanner *ds = sp.getScanner (seed_p1, seed_p2, true);
+  bool rev = sp.isLastScanReversed ();
+  Vr2i seed (seed_p1.vectorTo (seed_p2));
+  int a = seed.x (), b = seed.y ();
+  if (a < 0.)
   {
-    Vr2i p12 = pp1.vectorTo (pp2);
-    float l12 = (float) (sqrt (p12.norm2 ()));
-    bool free_path = true;
-    int lacks = 0;
-    float slast = 0.0f, elast = 0.0f;
-    bool rev = isScanReversed (0);
-    int res = getConnectedPlateau (pts, acc, 0, lacks, &slast, &elast,
-                                   rev, iratio, pp1, p12, l12);
-    if (res == 1) return;
-
-    free_path = true;
-    slast = 0.0f;
-    elast = 0.0f;
-    lacks = 0;
-    int maxi = getLeftScanCount ();
-    for (int num = 1; free_path && num <= maxi; num++)
-    {
-      res = getConnectedPlateau (pts, acc, num, lacks, &slast, &elast,
-                                 rev, iratio, pp1, p12, l12);
-      if (res == 1) free_path = false;
-      else if (res != 0) lacks ++;
-      else lacks = 0;
-    }
-    free_path = true;
-    slast = 0.0f;
-    elast = 0.0f;
-    lacks = 0;
-    int mini = - getRightScanCount ();
-    for (int num = -1; free_path && num >= mini; num--)
-    {
-      res = getConnectedPlateau (pts, acc, num, lacks, &slast, &elast,
-                                 rev, iratio, pp1, p12, l12);
-      if (res == 1) free_path = false;
-      else if (res != 0) lacks ++;
-      else lacks = 0;
-    }
+    a = -a;
+    b = -b;
   }
+  float l12 = (float) (sqrt (seed.norm2 ()));
+  Vr2f p12n (seed.x () / l12, seed.y () / l12);
+  int mini = - getRightScanCount ();
+  int maxi = getLeftScanCount ();
+
+  int lacks = 0;
+  float sint = 0.0f, eint = 0.0f, slast = 0.0f, elast = 0.0f;
+  float sini = 0.0, eini = 0.0f, sdif = 0.0f, edif = 0.0f;
+  std::vector<Pt2i> pix;
+  std::vector<Pt2i>::iterator pit;
+  ds->first (pix);
+  int i = 0;
+  do
+  {
+    Plateau *pl = plateau (i);
+    if (pl == NULL || ! pl->inserted (acc)) lacks ++;
+    else
+    {
+      sint = pl->internalStart () * iratio;
+      eint = pl->internalEnd () * iratio;
+      if (lacks ++)
+      {
+        sdif = (slast - sint) / lacks;
+        edif = (elast - eint) / lacks;
+      }
+      while (lacks)
+      {
+        lacks --;
+        bool cherche = true, in = false;
+        float sval = sint + sdif * lacks;
+        float eval = eint + edif * lacks;
+        if (i != 0)
+        {
+          Plateau *spl = plateau (i + (i < 0 ? lacks : - lacks));
+          ds->bindTo (a, b, spl->scanShift ());
+          if ((i > 0 && rev) || (i < 0 && ! rev)) ds->nextOnRight (pix);
+          else ds->nextOnLeft (pix);
+        }
+        for (pit = pix.begin (); cherche && pit != pix.end (); pit ++)
+        {
+          Vr2i p1x (seed_p1.vectorTo (*pit));
+          float dist = p12n.x () * p1x.x () + p12n.y () * p1x.y ();
+          if (! in)
+          {
+//            if ((rev && dist < eval) || ((! rev) && dist >= sval)) in = true;
+if ((rev && dist <= eval) || ((! rev) && dist >= sval)) in = true;
+          }
+          if (in)
+          {
+//            if ((rev && dist < sval) || ((! rev) && dist >= eval))
+if ((rev && dist < sval) || ((! rev) && dist > eval))
+              cherche = false;
+            else pts->push_back (*pit);
+          }
+        }
+      }
+      slast = sint;
+      elast = eint;
+    }
+    // Updates the scanner traversal
+    if (i == 0)
+    {
+      sini = sint;
+      eini = eint;
+      lacks = 0;  // for safety, if ever the initial scan is not accepted
+    }
+    if (i == maxi)
+    {
+      i = -1;
+      slast = sini;
+      elast = eini;
+      lacks = 0;
+    }
+    else i += (i < 0 ? -1 : 1);
+  }
+  while (i >= mini);
 }
 
 
-int CarriageTrack::getConnectedPlateau (std::vector<Pt2i> *pts, bool acc,
-                              int num, int lacks, float *slast, float *elast,
-                              bool rev, float iratio,
-                              Pt2i pp1, Vr2i p12, float l12)
+void CarriageTrack::getConnectedPoints (std::vector<std::vector<Pt2i> > *pts,
+                                     bool acc, int imw, int imh, float iratio)
 {
-  Plateau *pl = plateau (num);
-  if (pl == NULL || (acc ? ! pl->isAccepted ()
-                         : pl->getStatus () != Plateau::PLATEAU_RES_OK))
-    return (-1);
-
-  float sint = pl->internalStart () * iratio;
-  float eint = pl->internalEnd () * iratio;
-  bool started = false, searching = true;
-  float sdif = 0.f, edif = 0.0f;
-
-  if (lacks ++)
+  int i = 0, lacks = 0, flacks = -1, blacks = -1;
+  float slast = 0.0f, elast = 0.0f;
+  float sint = 0.0f, eint = 0.0f, sdif = 0.0f, edif = 0.0f;
+  int mini = - getRightScanCount ();
+  int maxi = getLeftScanCount ();
+  for (int j = 0; flacks < 0 && j <= maxi; j++)
+    if (plateau(j)->inserted (acc)) flacks = j;
+  for (int j = 0; blacks < 0 && j >= mini; j--)
+    if (plateau(j)->inserted (acc)) blacks = -j;
+  if (blacks == -1)
+    if (flacks == -1) return;
+    else i = flacks;
+  else if (blacks > 0)
   {
-    sdif = (*slast - sint) / lacks;
-    edif = (*elast - eint) / lacks;
-  }
-  while (lacks --)
-  {
-    started = false;
-    searching = true;
-    float sval = sint + sdif * lacks;
-    float eval = eint + edif * lacks;
-    std::vector<Pt2i> *scan = getDisplayScan (num + (num > 0 ? -lacks : lacks));
-    std::vector<Pt2i>::iterator it = scan->begin ();
-    while (searching && it != scan->end ())
+    i = - blacks;
+    if (flacks > 0)
     {
-      Vr2i p1x = pp1.vectorTo (*it);
-      float dist = (p12.x () * p1x.x () + p12.y () * p1x.y ()) / l12;
-      if (rev)
-      {
-        if (started)
-        {
-          if (dist < sval) searching = false;
-          else pts->push_back (*it);
-        }
-        else if (dist <= eval)
-        {
-          started = true;
-          pts->push_back (*it);
-        }
-      }
-      else
-      {
-        if (started)
-        {
-          if (dist > eval) searching = false;
-          else pts->push_back (*it);
-        }
-        else if (dist >= sval)
-        {
-          started = true;
-          pts->push_back (*it);
-        }
-      }
-      it ++;
+      lacks = flacks + blacks - 1;
+      slast = plateau(flacks)->internalStart () * iratio;
+      elast = plateau(flacks)->internalEnd () * iratio;
     }
   }
-  
-  *slast = sint;
-  *elast = eint;
-  return 0;
+
+  ScannerProvider sp;
+  sp.setSize (imw, imh);
+  DirectionalScanner *ds = sp.getScanner (seed_p1, seed_p2, true);
+  bool rev = sp.isLastScanReversed ();
+  if (blacks == -1)
+  {
+    if (rev) ds->skipRight (flacks);
+    else ds->skipLeft (flacks);
+  }
+  else if (flacks == -1)
+  {
+    if (rev) ds->skipLeft (blacks);
+    else ds->skipRight (blacks);
+  }
+  Vr2i seed (seed_p1.vectorTo (seed_p2));
+  int a = seed.x (), b = seed.y ();
+  if (a < 0.)
+  {
+    a = -a;
+    b = -b;
+  }
+  float l12 = (float) (sqrt (seed.norm2 ()));
+  Vr2f p12n (seed.x () / l12, seed.y () / l12);
+
+  std::vector<Pt2i> pix;
+  std::vector<Pt2i>::iterator pit;
+  do
+  {
+    Plateau *pl = plateau (i);
+    if (pl->inserted (acc))
+    {
+      sint = pl->internalStart () * iratio;
+      eint = pl->internalEnd () * iratio;
+      if (lacks ++)
+      {
+        sdif = (slast - sint) / lacks;
+        edif = (elast - eint) / lacks;
+        if (i < 0 && i + lacks > 1) lacks = 1 - i;
+        if (i > 0 && i - lacks < 0) lacks = i;
+      }
+      while (lacks)
+      {
+        lacks --;
+        std::vector<Pt2i> line;
+        bool cherche = true, in = false;
+        float sval = sint + sdif * lacks;
+        float eval = eint + edif * lacks;
+        int cur = i + (i < 0 ? lacks : - lacks);
+        if (cur == 0) ds->first (pix);
+        else
+        {
+          ds->bindTo (a, b, plateau (cur)->scanShift ());
+          if ((i > 0 && rev) || (i < 0 && ! rev)) ds->nextOnRight (pix);
+          else ds->nextOnLeft (pix);
+        }
+        for (pit = pix.begin (); cherche && pit != pix.end (); pit ++)
+        {
+          Vr2i p1x (seed_p1.vectorTo (*pit));
+          float dist = p12n.x () * p1x.x () + p12n.y () * p1x.y ();
+          if (! in)
+          {
+//            if ((rev && dist < eval) || ((! rev) && dist >= sval)) in = true;
+if ((rev && dist <= eval) || ((! rev) && dist >= sval)) in = true;
+          }
+          if (in)
+          {
+//            if ((rev && dist < sval) || ((! rev) && dist >= eval))
+if ((rev && dist < sval) || ((! rev) && dist > eval))
+              cherche = false;
+            else line.push_back (*pit);
+          }
+        }
+        pts->push_back (line);
+      }
+      slast = sint;
+      elast = eint;
+    }
+    else lacks ++;
+
+    // Updates the scanner traversal
+    if (i == mini)
+    {
+      i = 1;
+      lacks = (flacks > 0 ? blacks + flacks - 1 : 0);
+      slast = plateau(-blacks)->internalStart () * iratio;
+      elast = plateau(-blacks)->internalEnd () * iratio;
+      std::reverse (pts->begin (), pts->end ());
+    }
+    else i += (i <= 0 ? -1 : 1);
+  }
+  while (i <= maxi);
 }
 
 
@@ -681,4 +873,3 @@ int CarriageTrack::scanShift (float pcenter)
   float valc = a * posx + b * posy;
   return ((int) (valc < 0.0f ? valc - 0.5f : valc + 0.5f));
 }
-

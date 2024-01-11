@@ -281,3 +281,15 @@ int VHScannerO2::skipRight (std::vector<Pt2i> &scan, int skip)
   }
   return ((int) (scan.size ()));
 }
+
+
+void VHScannerO2::skipLeft (int skip)
+{
+  lcy -= skip - 1;
+}
+
+
+void VHScannerO2::skipRight (int skip)
+{
+  rcy += skip - 1;
+}

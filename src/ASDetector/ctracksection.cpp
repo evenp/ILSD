@@ -125,6 +125,7 @@ bool CTrackSection::pruneDoubtfulTail (int tailMinSize)
   if (plateaux.empty ()) return true;
   std::vector<Plateau *>::iterator pl = plateaux.end ();
   int num = (int) (plateaux.size ());
+  bool tail_found = false;
   int nb = 0;
   do
   {
@@ -133,16 +134,20 @@ bool CTrackSection::pruneDoubtfulTail (int tailMinSize)
     if ((*pl)->isAccepted ())
     {
       if (nb == 0 && last > num) last = num;
+      tail_found = true;
       if (++nb == tailMinSize) return false;
     }
-    else if (nb != 0)
+    else if (tail_found)
     {
-      std::vector<Plateau *>::iterator pl2 = pl;
-      while (nb != 0)
+      if (nb != 0)
       {
-        pl2 ++;
-        (*pl2)->prune ();
-        nb --;
+        std::vector<Plateau *>::iterator pl2 = pl;
+        while (nb != 0)
+        {
+          pl2 ++;
+          (*pl2)->prune ();
+          nb --;
+        }
       }
       holes --;
     }

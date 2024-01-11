@@ -90,6 +90,11 @@ public:
     return (p.xv - xv < eps && xv - p.xv < eps
             && p.yv - yv < eps && yv - p.yv < eps); }
 
+  /**
+   * \brief Sets the vector to the CCW orthogonal vector.
+   */
+  inline void setOrthog () { int tmp = xv; xv = - yv; yv = tmp; }
+
 
 private:
 

@@ -85,6 +85,18 @@ public:
   virtual int skipRight (std::vector<Pt2i> &scan, int skip) = 0;
 
   /**
+   * \brief Skips scans to the left.
+   * @param skip Skip length.
+   */
+  virtual void skipLeft (int skip) = 0;
+
+  /**
+   * \brief Skips scans to the right.
+   * @param skip Skip length.
+   */
+  virtual void skipRight (int skip) = 0;
+
+  /**
    * \brief Binds the scan strip to wrap the given digital line.
    * Resets bounding lines parameters to center the scan strip on given line.
    * @param a New value for the 'a' parameter of current scan strip.

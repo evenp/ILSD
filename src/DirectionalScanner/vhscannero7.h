@@ -139,6 +139,18 @@ public:
    */
   int skipRight (std::vector<Pt2i> &scan, int skip);
 
+  /**
+   * \brief Skips scans to the left.
+   * @param skip Skip length.
+   */
+  void skipLeft (int skip);
+
+  /**
+   * \brief Skips scans to the right.
+   * @param skip Skip length.
+   */
+  void skipRight (int skip);
+
 
 private :
 

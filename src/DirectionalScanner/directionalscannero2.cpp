@@ -364,6 +364,63 @@ int DirectionalScannerO2::skipRight (std::vector<Pt2i> &scan, int skip)
 }
 
 
+void DirectionalScannerO2::skipLeft (int skip)
+{
+  while (--skip != 0)
+  {
+    if (lstop)
+    {
+      lcy --;
+      lstop = false;
+    }
+    else
+    {
+      if (--lst1 < steps) lst1 = fs - 1;
+      lcy --;
+      if (*lst1)
+      {
+        lcx --;
+        if (*lst2)
+        {
+          lcy ++;
+          lstop = true;
+        }
+        if (++lst2 >= fs) lst2 = steps;
+      }
+    }
+  }
+}
+
+
+void DirectionalScannerO2::skipRight (int skip)
+{
+  while (--skip != 0)
+  {
+    if (rstop)
+    {
+      rcx ++;
+      if (--rst2 < steps) rst2 = fs - 1;
+      rstop = false;
+    }
+    else
+    {
+      rcy ++;
+      if (*rst1)
+      {
+        if (--rst2 < steps) rst2 = fs - 1;
+        if (*rst2)
+        {
+          if (++rst2 >= fs) rst2 = steps;
+          rstop = true;
+        }
+        else rcx ++;
+      }
+      if (++rst1 >= fs) rst1 = steps;
+    }
+  }
+}
+
+
 Pt2i DirectionalScannerO2::locate (const Pt2i &pt) const
 {
   int x = ccx, y = ccy;      // Current position coordinates

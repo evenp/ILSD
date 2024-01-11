@@ -32,7 +32,7 @@
  * @class ScannerProvider scannerprovider.h
  * \brief Directional scanner provider.
  * Provides ad-hoc directional scanners in the relevant octant
- *   and according to static or dynamical control.
+ *   with possible orthographic or adaption modalities.
  */
 class ScannerProvider
 {
@@ -53,7 +53,7 @@ public:
      xmax = xmin + sizex; ymax = ymin + sizey; }
 
   /**
-   * \brief Sets the scanned area size.
+   * \brief Sets the scanned area.
    * @param x0 Left column coordinate of the scan area.
    * @param y0 Lower line coordinate of the scan area.
    * @param sizex Scan area width.
@@ -69,9 +69,9 @@ public:
    *   the initial one being defined by control points p1 and p2.
    * @param p1 Initial scan start point.
    * @param p2 Initial scan end point.
-   * @param controlable Control modality (true for an adaptive scanner).
+   * @param adaptive Directional scanner adaption modality.
    */
-  DirectionalScanner *getScanner (Pt2i p1, Pt2i p2, bool controlable = false);
+  DirectionalScanner *getScanner (Pt2i p1, Pt2i p2, bool adaptive = false);
   
   /**
    * \brief Returns a directional scanner from scan center, vector and length.
@@ -80,36 +80,34 @@ public:
    * @param centre Initial scan center.
    * @param normal Initial scan director vector.
    * @param length Initial scan length.
-   * @param controlable Control modality (true for an adaptive scanner).
+   * @param adaptive Directional scanner adaption modality.
    */
   DirectionalScanner *getScanner (Pt2i centre, Vr2i normal,
-                                  int length, bool controlable = false);
+                                  int length, bool adaptive = false);
 
   /**
-   * \brief Returns whether the currently used scan end points were permutated.
+   * \brief Returns whether the input vector (P1P2 or normal) has been reversed.
    */
   inline bool isLastScanReversed () const { return last_scan_reversed; }
 
   /**
-   * \brief Sets the orthogonal scanner modality.
-   * @param status New status for the orthogonal scanner modality.
+   * \brief Sets the orthographic scanner modality (aligned to main directions).
+   * @param status New status for the orthographic scanner modality.
    */
   inline void setOrtho (bool status) { isOrtho = status; }
 
   /**
-   * \brief Returns whether given direction is permutated.
-   * This function indicates if the direction is reversed
-   *   when it is used as a first scan or a normal vector to build a scanner.
-   * @param vec Tested direction.
+   * \brief Returns whether input vector (P1P2 or normal) is reversed.
+   * @param vec Vector used for directional scanner initialization (getScanner).
    */
   static bool isReversed (const Vr2i &vec);
 
 
 private:
 
-  /** Orthogonal scanner modality. */
+  /** Orthographic scanner modality (scans aligned to main directions). */
   bool isOrtho;
-  /** Last scan end points permutation modality. */
+  /** Input vector permutation status. */
   bool last_scan_reversed;
 
   /** Scan area lowest x coordinate. */

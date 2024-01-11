@@ -248,10 +248,22 @@ public:
   void setTailMinSize (int val);
 
   /**
-   * \brief Returns the search distance for lost plateau.
+   * \brief Returns the search distance for first plateau.
+   */
+  inline float firstPlateauSearchDistance () const {
+    return DEFAULT_FIRST_PLATEAU_SEARCH_DISTANCE; }
+
+  /**
+   * \brief Returns the search distance for lost plateaux.
    */
   inline float plateauSearchDistance () const {
-    return DEFAULT_PLATEAU_SEARCH_DISTANCE; }
+    return plateau_search_distance; }
+
+  /**
+   * \brief Sets the plateau search distance.
+   * @param val New search distance value.
+   */
+  void setPlateauSearchDistance (float val);
 
   /**
    * \brief Indicates whether direction is used to predict next plateau.
@@ -262,7 +274,8 @@ public:
   /**
    * \brief Switches deviation addition to the template.
    */
-  void switchDeviationPrediction ();
+  inline void switchDeviationPrediction () {
+    deviation_prediction_on = ! deviation_prediction_on; }
 
   /**
    * \brief Indicates whether slope is used to predict next plateau position.
@@ -272,7 +285,19 @@ public:
   /**
    * \brief Switches slope addition to the template.
    */
-  void switchSlopePrediction (); 
+  inline void switchSlopePrediction () {
+    slope_prediction_on = ! slope_prediction_on; }
+
+  /**
+   * \brief Indicates whether sections are planned to be merged.
+   */
+  inline bool isNetBuildOn () const { return (netbuild_on); }
+
+  /**
+   * \brief Sets mergeability modality on or off.
+   * @param status Required status for mergeability modality.
+   */
+  inline void setNetBuild (bool status) { netbuild_on = status; }
 
 
 private :
@@ -315,6 +340,8 @@ private :
   static const int BS_PINCH_MARGIN;
   /** Default value for maximal blurred segment tilt. */
   static const int DEFAULT_BS_MAX_TILT;
+  /** Default value for first plateau search distance. */
+  static const float DEFAULT_FIRST_PLATEAU_SEARCH_DISTANCE;
   /** Default value for lost plateau search distance. */
   static const float DEFAULT_PLATEAU_SEARCH_DISTANCE;
   /** Default value for the minimal size of ending successive plateaux. */
@@ -336,6 +363,8 @@ private :
   float opt_height_min_use;
   /** Maximal blurred segment tilt (%). */
   int bs_max_tilt;
+  /** Search distance for lost plateaux. */
+  float plateau_search_distance;
   /** Minimal size of ending successive plateaux. */
   int tail_min_size;
 
@@ -343,6 +372,8 @@ private :
   bool deviation_prediction_on;
   /** Indicates if the slope is used to predict next plateau position. */
   bool slope_prediction_on;
+  /** Indicates if detected sections are planned to be merged into a network. */
+  bool netbuild_on;
 
 };
 #endif

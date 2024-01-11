@@ -143,6 +143,18 @@ public:
   int skipRight (std::vector<Pt2i> &scan, int skip);
 
   /**
+   * \brief Skips scans to the left.
+   * @param skip Skip length.
+   */
+  void skipLeft (int skip);
+
+  /**
+   * \brief Skips scans to the right.
+   * @param skip Skip length.
+   */
+  void skipRight (int skip);
+
+  /**
    * \brief Binds the scan strip to wrap the given digital line.
    * Resets bounding lines parameters to center the scan strip on given line.
    * @param a Parameter 'a' of given digital line.
