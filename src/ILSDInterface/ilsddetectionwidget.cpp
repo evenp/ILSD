@@ -50,7 +50,7 @@
 #define TILE_NAME_MAX_LENGTH 200
 
 
-const std::string ILSDDetectionWidget::VERSION = "1.1.15";
+const std::string ILSDDetectionWidget::VERSION = "1.1.16";
 
 const int ILSDDetectionWidget::MODE_NONE = 0;
 const int ILSDDetectionWidget::MODE_CTRACK = 1;
@@ -1874,37 +1874,12 @@ void ILSDDetectionWidget::displayCarriageTrack (ASPainter& painter, ASColor col)
   CarriageTrack* ct = tdetector.getCarriageTrack ();
   if (ct != NULL)
   {
-    Plateau* pl = ct->plateau (0);
-    if (pl != NULL)
-    {
-      painter.setPen (ASPen (col, THIN_PEN));
-
-      Pt2i pp1, pp2;
-      tdetector.getInputStroke (pp1, pp2);
-      Vr2i p12 = pp1.vectorTo (pp2);
-      float l12 = (float) (sqrt (p12.norm2 ()));
-      int mini = - ct->getRightScanCount ();
-      int maxi = ct->getLeftScanCount ();
-      for (int i = mini; i <= maxi; i++)
-      {
-        pl = ct->plateau (i);
-        if (pl != NULL && pl->inserted (smoothed_plateaux))
-        {
-          float sint = pl->internalStart () * iratio;
-          float eint = pl->internalEnd () * iratio;
-          vector<Pt2i>* scan = ct->getDisplayScan (i);
-          vector<Pt2i>::iterator it = scan->begin ();
-          while (it != scan->end ())
-          {
-            Vr2i p1x = pp1.vectorTo (*it);
-            float dist = (p12.x () * p1x.x () + p12.y () * p1x.y ()) / l12;
-            if (dist >= sint && dist < eint)
-              painter.drawPoint (ASCanvasPos (it->x (), height - 1 - it->y ()));
-            it++;
-          }
-        }
-      }
-    }
+    painter.setPen (ASPen (col, THIN_PEN));
+    std::vector<Pt2i> ct_pts;
+    ct->getPoints (&ct_pts, smoothed_plateaux, width, height, iratio);
+    for (std::vector<Pt2i>::iterator pit = ct_pts.begin ();
+         pit != ct_pts.end (); pit ++)
+      painter.drawPoint (ASCanvasPos (pit->x (), height - 1 - pit->y ()));
   }
 }
 

@@ -245,6 +245,12 @@ void CTrackDetector::detect (int exlimit)
   Vr2f p12 (csize * (p2.x () - p1.x ()), csize * (p2.y () - p1.y ()));
   Pt2f p1f (csize * (p1.x () + 0.5f), csize * (p1.y () + 0.5f));
   float l12 = (float) sqrt (p12.x () * p12.x () + p12.y () * p12.y ());
+  Vr2f dss_pos (p1.x () + (p2.x () - p1.x ()) * 0.5f,
+                p1.y () + (p2.y () - p1.y ()) * 0.5f);
+  Vr2i dss_n (p1.vectorTo (p2));
+  if (dss_n.x () < 0) dss_n.invert ();
+  float valc = dss_n.x () * dss_pos.x () + dss_n.y () * dss_pos.y ();
+  int scan0_shift = (int) (valc < 0.0f ? valc - 0.5f : valc + 0.5f);
 
   // Creates adaptive directional scanners for point cloud and display
   DirectionalScanner *ds = scanp.getScanner (
@@ -299,11 +305,11 @@ void CTrackDetector::detect (int exlimit)
   ct->setDetectionSeed (p1, p2, csize);
   if (exlimit != 0) ict = ct;
   else fct = ct;
-  Plateau *cpl = new Plateau (&pfeat);
+  Plateau *cpl = new Plateau (&pfeat, scan0_shift);
   bool success = cpl->detect (cpts);
   if ((! success) && (! cpl->noOptimalHeight ()))
   {
-    Plateau *cpl2 = new Plateau (&pfeat);
+    Plateau *cpl2 = new Plateau (&pfeat, scan0_shift);
     success = cpl2->detect (cpts, false, cpl->getMinHeight ());
     if (success)
     {
@@ -388,6 +394,12 @@ void CTrackDetector::detect ()
   Vr2f p12 (csize * (p2.x () - p1.x ()), csize * (p2.y () - p1.y ()));
   Pt2f p1f (csize * (p1.x () + 0.5f), csize * (p1.y () + 0.5f));
   float l12 = (float) sqrt (p12.x () * p12.x () + p12.y () * p12.y ());
+  Vr2f dss_pos (p1.x () + (p2.x () - p1.x ()) * 0.5f,
+                p1.y () + (p2.y () - p1.y ()) * 0.5f);
+  Vr2i dss_n (p1.vectorTo (p2));
+  if (dss_n.x () < 0) dss_n.invert ();
+  float valc = dss_n.x () * dss_pos.x () + dss_n.y () * dss_pos.y ();
+  int scan0_shift = (int) (valc < 0.0f ? valc - 0.5f : valc + 0.5f);
 
   // Creates adaptive directional scanners for point cloud and display
   DirectionalScanner *ds = scanp.getScanner (
@@ -445,13 +457,13 @@ void CTrackDetector::detect ()
     tests[2 * i] = pfeat.firstPlateauSearchDistance () * (i + 1);
     tests[2 * i + 1] = - pfeat.firstPlateauSearchDistance () * (i + 1);
   }
-  Plateau *cpl = new Plateau (&pfeat);
+  Plateau *cpl = new Plateau (&pfeat, scan0_shift);
   bool found = (pfeat.isNetBuildOn () ?
     cpl->track (cpts, NULL, 0, 0.0f, l12) :
     cpl->track (cpts, 0.0f, l12, 0.0f, 0.0f, 0));
   for (int ptest = 0; ptest != NB_SIDE_TRIALS * 2; ptest++)
   {
-    Plateau *cpl2 = new Plateau (&pfeat);
+    Plateau *cpl2 = new Plateau (&pfeat, scan0_shift);
     bool success = (pfeat.isNetBuildOn () ?
       cpl2->track (cpts, NULL, 0, tests[ptest], l12) :
       cpl2->track (cpts, 0.0f, l12, 0.0f, tests[ptest], 0));
@@ -539,21 +551,22 @@ void CTrackDetector::track (bool onright, bool reversed, int exlimit,
   CarriageTrack *ct = (exlimit != 0 ? ict : fct);
   ct->clear (onright);
   int confdist = 1;
+  Pt2i ss_p1, ss_p2;
+  getInputStroke (ss_p1, ss_p2, exlimit != 0);
+  Vr2i ss_p12 (ss_p1.vectorTo (ss_p2));
+  float ss_l12 = (float) sqrt (ss_p12.norm2 ());
+  Vr2i dss_n (ss_p12);
+  if (dss_n.x () < 0) dss_n.invert ();
   while (search && num != exlimit)
   {
     // Adaptive scan recentering on reference pattern
-    Pt2i p1, p2;
-    getInputStroke (p1, p2, exlimit != 0);
-    int a = p2.x () - p1.x ();
-    int b = p2.y () - p1.y ();
-    if (a < 0.)
-    {
-      a = -a;
-      b = -b;
-    }
-    int scan_shift = ct->scanShift ((refs + refe) / 2);
-    disp->bindTo (a, b, scan_shift);
-    ds->bindTo (a, b, scan_shift * subdiv + subdiv / 2);
+    float pcenter = (refs + refe) / 2;
+    float posx = ss_p1.x () + (ss_p12.x () / ss_l12) * pcenter / csize;
+    float posy = ss_p1.y () + (ss_p12.y () / ss_l12) * pcenter / csize;
+    float valc = dss_n.x () * posx + dss_n.y () * posy;
+    int scan_shift = (int) (valc < 0.0f ? valc - 0.5f : valc + 0.5f);
+    disp->bindTo (dss_n.x (), dss_n.y (), scan_shift);
+    ds->bindTo (dss_n.x (), dss_n.y (), scan_shift * subdiv + subdiv / 2);
 
     // Collects next scan points and sorts them by distance
     std::vector<Pt2i> pix;
@@ -590,20 +603,17 @@ void CTrackDetector::track (bool onright, bool reversed, int exlimit,
       sort (pts.begin (), pts.end (), compIFurther);
 
       // Detects the plateau and updates the track section
-      Plateau *pl = new Plateau (&pfeat);
-      pl->setScanShift (scan_shift);
+      Plateau *pl = new Plateau (&pfeat, scan_shift);
       pl->track (pts, refs, refe, refh, 0.0f, confdist);
       if (pl->getStatus () != Plateau::PLATEAU_RES_OK)
       {
-        Plateau *pl2 = new Plateau (&pfeat);
-        pl2->setScanShift (scan_shift);
+        Plateau *pl2 = new Plateau (&pfeat, scan_shift);
         pl2->track (pts, refs, refe, refh,
                     pfeat.plateauSearchDistance (), confdist);
         if (pl2->getStatus () != Plateau::PLATEAU_RES_OK)
         {
           delete pl2;
-          Plateau *pl3 = new Plateau (&pfeat);
-          pl3->setScanShift (scan_shift);
+          Plateau *pl3 = new Plateau (&pfeat, scan_shift);
           pl3->track (pts, refs, refe, refh,
                       -pfeat.plateauSearchDistance (), confdist);
           if (pl3->getStatus () != Plateau::PLATEAU_RES_OK)
@@ -706,21 +716,22 @@ void CTrackDetector::track (bool onright, bool reversed, int exlimit,
   CarriageTrack *ct = (exlimit != 0 ? ict : fct);
   ct->clear (onright);
   int confdist = 1;
+  Pt2i ss_p1, ss_p2;
+  getInputStroke (ss_p1, ss_p2, exlimit != 0);
+  Vr2i ss_p12 (ss_p1.vectorTo (ss_p2));
+  float ss_l12 = (float) sqrt (ss_p12.norm2 ());
+  Vr2i dss_n (ss_p12);
+  if (dss_n.x () < 0) dss_n.invert ();
   while (search && num != exlimit)
   {
     // Adaptive scan recentering on reference pattern
-    Pt2i p1, p2;
-    getInputStroke (p1, p2, exlimit != 0);
-    int a = p2.x () - p1.x ();
-    int b = p2.y () - p1.y ();
-    if (a < 0.)
-    {
-      a = -a;
-      b = -b;
-    }
-    int scan_shift = ct->scanShift (ref->estimatedCenter ());
-    disp->bindTo (a, b, scan_shift);
-    ds->bindTo (a, b, scan_shift * subdiv + subdiv / 2);
+    float pcenter = ref->estimatedCenter ();
+    float posx = ss_p1.x () + (ss_p12.x () / ss_l12) * pcenter / csize;
+    float posy = ss_p1.y () + (ss_p12.y () / ss_l12) * pcenter / csize;
+    float valc = dss_n.x () * posx + dss_n.y () * posy;
+    int scan_shift = (int) (valc < 0.0f ? valc - 0.5f : valc + 0.5f);
+    disp->bindTo (dss_n.x (), dss_n.y (), scan_shift);
+    ds->bindTo (dss_n.x (), dss_n.y (), scan_shift * subdiv + subdiv / 2);
 
     // Collects next scan points and sorts them by distance
     std::vector<Pt2i> pix;
@@ -756,8 +767,7 @@ void CTrackDetector::track (bool onright, bool reversed, int exlimit,
       }
 
       // Detects the plateau and updates the track section
-      Plateau *pl = new Plateau (&pfeat);
-      pl->setScanShift (scan_shift);
+      Plateau *pl = new Plateau (&pfeat, scan_shift);
       sort (pts.begin (), pts.end (), compIFurther);
       pl->track (pts, ref, confdist, 0.0f, 0.0f);
       if (pl->getStatus () != Plateau::PLATEAU_RES_OK)
@@ -771,8 +781,7 @@ void CTrackDetector::track (bool onright, bool reversed, int exlimit,
         bool tracking = true;
         for (int i = 0; tracking && i < NB_SIDE_TRIALS * 2; i++)
         {
-          Plateau *pl2 = new Plateau (&pfeat);
-          pl2->setScanShift (scan_shift);
+          Plateau *pl2 = new Plateau (&pfeat, scan_shift);
           pl2->track (pts, ref, confdist, retests[i], 0.0f);
           if (pl2->getStatus () > pl->getStatus ())
           {

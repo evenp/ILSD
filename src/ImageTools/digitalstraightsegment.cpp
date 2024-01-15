@@ -260,6 +260,14 @@ void DigitalStraightSegment::dilate (int radius)
 }
 
 
+void DigitalStraightSegment::setNaive ()
+{
+  int p = period ();
+  c += (nu - p) / 2;
+  nu = p;
+}
+
+
 bool DigitalStraightSegment::contains (Pt2i p, int tol) const
 {
   int pos = a * p.x () + b * p.y ();

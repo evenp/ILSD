@@ -78,13 +78,19 @@ public:
   /**
    * \brief Creates a new bump.
    * @param bmod Bump detection features.
+   * @param ct_shift Center shift value (in pixels).
    */
-  Bump (BumpModel *bmod);
+  Bump (BumpModel *bmod, int ct_shift);
 
   /**
    * \brief Deletes the bump.
    */
   ~Bump ();
+
+  /**
+   * \brief Returns the input scan center shift.
+   */
+  inline int scanShift () const { return scan_shift; }
 
   /**
    * \brief Detects the bump in a whole scan.
@@ -516,6 +522,8 @@ private :
 
   /** Reference bump. */
   Bump *ref;
+  /** Input scan center shift (in pixels). Invalid for first scan. */
+  int scan_shift;
 
   /** Estimated mass center position. */
   Pt2f mcenter_est;

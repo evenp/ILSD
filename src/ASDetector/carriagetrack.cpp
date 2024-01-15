@@ -429,12 +429,8 @@ void CarriageTrack::getPoints (std::vector<std::vector<Pt2i> > *pts, bool acc,
   DirectionalScanner *ds = sp.getScanner (seed_p1, seed_p2, true);
   bool rev = sp.isLastScanReversed ();
   Vr2i seed (seed_p1.vectorTo (seed_p2));
-  int a = seed.x (), b = seed.y ();
-  if (a < 0.)
-  {
-    a = -a;
-    b = -b;
-  }
+  Vr2i ssdir (seed);
+  if (ssdir.x () < 0) ssdir.invert ();
   float l12 = (float) (sqrt (seed.norm2 ()));
   Vr2f p12n (seed.x () / l12, seed.y () / l12);
   int mini = - getRightScanCount ();
@@ -449,7 +445,7 @@ void CarriageTrack::getPoints (std::vector<std::vector<Pt2i> > *pts, bool acc,
     Plateau *pl = plateau (i);
     if (i != 0)
     {
-      ds->bindTo (a, b, pl->scanShift ());
+      ds->bindTo (ssdir.x (), ssdir.y (), pl->scanShift ());
       if ((i > 0 && rev) || (i < 0 && ! rev)) ds->nextOnRight (pix);
       else ds->nextOnLeft (pix);
     }
@@ -807,10 +803,7 @@ void CarriageTrack::addPlateauCenter (std::vector<Pt2i> &pt, int num, bool rev,
       snum ++;
       it ++;
     }
-//    if (rev)
-//    {
     if (sdraw == -1) sdraw = (int) (scan->size ()) - 1;
-//    }
     pt.push_back ((*scan)[sdraw]);
   }
 }
@@ -845,31 +838,9 @@ void CarriageTrack::addPlateauBounds (
       snum ++;
       it ++;
     }
-//    if (rev)
-//    {
     if (sdraw == -1) sdraw = (int) (scan->size ()) - 1;
-//    }
-//    else
-//    {
     if (edraw == -1) edraw = (int) (scan->size ()) - 1;
-//    }
     spt.push_back ((*scan)[sdraw]);
     ept.push_back ((*scan)[edraw]);
   }
-}
-
-
-int CarriageTrack::scanShift (float pcenter)
-{
-  int a = seed_p2.x () - seed_p1.x ();
-  int b = seed_p2.y () - seed_p1.y ();
-  float posx = seed_p1.x () + (a / seed_length) * pcenter / cell_size;
-  float posy = seed_p1.y () + (b / seed_length) * pcenter / cell_size;
-  if (a < 0.)
-  {
-    a = -a;
-    b = -b;
-  }
-  float valc = a * posx + b * posy;
-  return ((int) (valc < 0.0f ? valc - 0.5f : valc + 0.5f));
 }

@@ -106,6 +106,12 @@ public:
   }
 
   /**
+   * \brief Sets the point Y coordinate.
+   * @param y New Y-coordinate value.
+   */
+  inline void setY (float y) { yp = y; }
+
+  /**
    * \brief Checks equivalence to given point up to epsilon.
    * @param p Given point.
    * @param eps Test value.

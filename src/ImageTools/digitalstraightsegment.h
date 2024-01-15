@@ -48,7 +48,10 @@ public:
   DigitalStraightSegment ();
 
   /**
-   * \brief Creates a null-thick segment joining two points.
+   * \brief Creates a null-thick segment passing through two points.
+   * Caution: the segment ends on given min-max bounds !
+   * To create a segment ending on the two points, use constructor with
+   * two points and width instead.
    * @param p1 First point on the line.
    * @param p2 Second point on the line.
    * @param type Digital line type : DSL_THIN, DSL_NAIVE or DSL_STANDARD.
@@ -77,7 +80,7 @@ public:
    * \brief Creates a digital straight segment from end points and width.
    * @param p1 First end point of the segment.
    * @param p2 Second end point of the segment.
-   * @param width Width value.
+   * @param width Width value: 1 for a naive line.
    */
   DigitalStraightSegment (Pt2i p1, Pt2i p2, int width);
 
@@ -141,6 +144,11 @@ public:
    * @param radius Dilation radius.
    */
   void dilate (int radius);
+
+  /**
+   * \brief Erodes the segment to its naive center line.
+   */
+  void setNaive ();
 
   /**
    * \brief Inquires if given point belongs to a dilation of the segment.

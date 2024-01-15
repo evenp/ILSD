@@ -285,12 +285,6 @@ public:
   void getPosition (std::vector<Pt2i> &pts, std::vector<Pt2i> &pts2,
                     int disp, float iratio, bool smoothed);
 
-  /**
-   * \brief Returns scan shift for given side position of the center.
-   * @param pcenter Side position of the center.
-   */
-  int scanShift (float pcenter);
-
 
 private :
 

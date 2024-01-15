@@ -184,6 +184,12 @@ void RidgeDetector::detect (int exlimit)
   Vr2f p12n ((p2.x () - p1.x ()) * csize / l12,
              (p2.y () - p1.y ()) * csize / l12);
   Pt2f p1f (csize * (p1.x () + 0.5f), csize * (p1.y () + 0.5f));
+  Vr2f dss_pos (p1.x () + (p2.x () - p1.x ()) * 0.5f,
+                p1.y () + (p2.y () - p1.y ()) * 0.5f);
+  Vr2i dss_n (p1.vectorTo (p2));
+  if (dss_n.x () < 0) dss_n.invert ();
+  float valc = dss_n.x () * dss_pos.x () + dss_n.y () * dss_pos.y ();
+  int scan0_shift = (int) (valc < 0.0f ? valc - 0.5f : valc + 0.5f);
 
   // Creates adaptive directional scanners for point cloud and display
   DirectionalScanner *ds = scanp.getScanner (
@@ -235,7 +241,7 @@ void RidgeDetector::detect (int exlimit)
   Ridge *ridge = new Ridge ();
   if (exlimit != 0) ibg = ridge;
   else fbg = ridge;
-  Bump *bmp = new Bump (&bfeat);
+  Bump *bmp = new Bump (&bfeat, scan0_shift);
   bool success = bmp->detect (cpts, l12);
   if (profileRecordOn) ridge->start (bmp, dispix, cpts,
                                      scanp.isLastScanReversed ());
@@ -272,27 +278,22 @@ void RidgeDetector::track (bool onright, bool reversed, int exlimit,
   if (onright) exlimit = - exlimit;
   Ridge *ridge = (exlimit != 0 ? ibg : fbg);
   int confdist = 1;
+  Pt2i ss_p1, ss_p2;
+  getInputStroke (ss_p1, ss_p2, exlimit != 0);
+  Vr2i ss_p12 (ss_p1.vectorTo (ss_p2));
+  float ss_l12 = (float) sqrt (ss_p12.norm2 ());
+  Vr2i dss_n (ss_p12);
+  if (dss_n.x () < 0) dss_n.invert ();
   while (search && num != exlimit)
   {
     // Adaptive scan recentering on reference pattern
-    Pt2i p1, p2;
-    getInputStroke (p1, p2, exlimit != 0);
-    int a = p2.x () - p1.x ();
-    int b = p2.y () - p1.y ();
-    if (a < 0.)
-    {
-      a = -a;
-      b = -b;
-    }
-    float posx = p1.x () + ((p2.x () - p1.x ()) * csize / l12)
-                           * refbmp->estimatedCenter().x () / csize;
-    float posy = p1.y () + ((p2.y () - p1.y ()) * csize / l12)
-                           * refbmp->estimatedCenter().x () / csize;
-    float valc = a * posx + b * posy;
-    int c = (int) (valc < 0.0f ? valc - 0.5f : valc + 0.5f);
-
-    disp->bindTo (a, b, c);
-    ds->bindTo (a, b, c * subdiv + subdiv / 2);
+    float pcenter = refbmp->estimatedCenter().x ();
+    float posx = ss_p1.x () + (ss_p12.x () / ss_l12) * pcenter / csize;
+    float posy = ss_p1.y () + (ss_p12.y () / ss_l12) * pcenter / csize;
+    float valc = dss_n.x () * posx + dss_n.y () * posy;
+    int scan_shift = (int) (valc < 0.0f ? valc - 0.5f : valc + 0.5f);
+    disp->bindTo (dss_n.x (), dss_n.y (), scan_shift);
+    ds->bindTo (dss_n.x (), dss_n.y (), scan_shift * subdiv + subdiv / 2);
 
     // Collects next scan points and sorts them by distance
     std::vector<Pt2i> pix;
@@ -329,7 +330,7 @@ void RidgeDetector::track (bool onright, bool reversed, int exlimit,
       sort (pts.begin (), pts.end (), compFurther);
 
       // Detects the bump and updates the ridge section
-      Bump *bump = new Bump (&bfeat);
+      Bump *bump = new Bump (&bfeat, scan_shift);
       bump->track (pts, l12, refbmp, confdist);
       if (profileRecordOn) ridge->add (onright, bump, dispix, pts);
       else ridge->add (onright, bump, dispix);

@@ -43,9 +43,10 @@ const int Plateau::PLATEAU_RES_TOO_NARROW = -13;
 const int Plateau::PLATEAU_RES_OUT_OF_HEIGHT_REF = -14;
 
 
-Plateau::Plateau (PlateauModel *pmod)
+Plateau::Plateau (PlateauModel *pmod, int ct_shift)
 {
   this->pmod = pmod;
+  scan_shift = ct_shift;
   status = PLATEAU_RES_NONE;
   accepted = false;
   s_ref = -1.0f;

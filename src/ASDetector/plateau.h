@@ -71,19 +71,14 @@ public:
   /**
    * \brief Creates a new plateau.
    * @param pmod Plateau detection features.
+   * @param ct_shift Center shift value (in pixels).
    */
-  Plateau (PlateauModel *pmod);
+  Plateau (PlateauModel *pmod, int ct_shift);
 
   /**
    * \brief Deletes the plateau.
    */
   ~Plateau ();
-
-  /**
-   * \brief Sets the input scan center shift.
-   * @param ct_shift Center shift value (in pixels).
-   */
-  inline void setScanShift (int ct_shift) { scan_shift = ct_shift; }
 
   /**
    * \brief Returns the input scan center shift.

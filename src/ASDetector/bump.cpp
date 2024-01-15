@@ -56,9 +56,10 @@ const float Bump::MAX_LINE_ROTATION_RATIO = 0.95f;
 const float Bump::RATIO_INC = 0.01f;
 
 
-Bump::Bump (BumpModel *bmod)
+Bump::Bump (BumpModel *bmod, int ct_shift)
 {
   this->bmod = bmod;
+  scan_shift = ct_shift;
   status = RES_NONE;
   def = DEF_NONE;
   accepted = false;
