@@ -31,10 +31,12 @@
 
 const int TerrainMap::SHADE_HILL = 0;
 const int TerrainMap::SHADE_SLOPE = 1;
-const int TerrainMap::DEFAULT_PAD_SIZE = 3;
+const int TerrainMap::SHADE_EXP_SLOPE = 2;
 
 const float TerrainMap::RELIEF_AMPLI = 5.0f;
 const float TerrainMap::LIGHT_ANGLE_INCREMENT = 0.03f;
+
+const int TerrainMap::DEFAULT_PAD_SIZE = 3;
 const std::string TerrainMap::NVM_SUFFIX = std::string (".nvm");
 
 const float TerrainMap::MM2M = 0.001f;
@@ -60,6 +62,7 @@ TerrainMap::TerrainMap ()
   light_v1.set (- ASF_SQRT2_2, 0.0f, ASF_SQRT2_2);
   light_v2.set (0.25f, - ASF_SQRT3_2 / 2, ASF_SQRT3_2);
   light_v3.set (0.25f, ASF_SQRT3_2 / 2, ASF_SQRT3_2);
+  slopiness = 1;
   pad_size = DEFAULT_PAD_SIZE;
   pad_w = pad_size;
   pad_h = pad_size;
@@ -92,7 +95,7 @@ void TerrainMap::clear ()
 
 
 int TerrainMap::get (int i, int j) const
-{
+{ 
   if (shading == SHADE_HILL)
   {
     float val1 = light_v1.scalar (nmap[j * iwidth + i]);
@@ -104,11 +107,19 @@ int TerrainMap::get (int i, int j) const
     float val = val1 + (val2 + val3) / 2;
     return (int) (val * 100);
   }
-  else
+  else if (shading == SHADE_SLOPE)
   {
     Pt3f *pt = nmap + j * iwidth + i;
-    return 255 - (int) (sqrt (pt->x () * pt->x () + pt->y () * pt->y ()) * 255);
+    return (255 - (int) (sqrt (pt->x() * pt->x() + pt->y() * pt->y()) * 255));
   }
+  else if (shading == SHADE_EXP_SLOPE)
+  {
+    Pt3f *pt = nmap + j * iwidth + i;
+    double alph = 1. - pt->x () * pt->x () - pt->y () * pt->y ();
+    for (int sl = slopiness; sl > 1; sl --) alph *= alph;
+    return ((int) (alph * 255));
+  }
+  else return 0;
 }
 
 
@@ -125,17 +136,36 @@ int TerrainMap::get (int i, int j, int shading_type) const
     float val = val1 + (val2 + val3) / 2;
     return (int) (val * 100);
   }
-  else
+  else if (shading_type == SHADE_SLOPE)
   {
     Pt3f *pt = nmap + j * iwidth + i;
-    return 255 - (int) (sqrt (pt->x () * pt->x () + pt->y () * pt->y ()) * 255);
+    return (255 - (int) (sqrt (pt->x() * pt->x() + pt->y() * pt->y()) * 255));
   }
+  else if (shading_type == SHADE_EXP_SLOPE)
+  {
+    Pt3f *pt = nmap + j * iwidth + i;
+    double alph = 1. - pt->x () * pt->x () - pt->y () * pt->y ();
+    if (alph < 0.) alph = 0.;  // saturation
+    for (int sl = slopiness; sl > 1; sl --) alph *= alph;
+    return ((int) (alph * 255));
+  }
+  else return 0;
+}
+
+
+double TerrainMap::getSlopeFactor (int i, int j, int slp) const
+{
+  Pt3f *pt = nmap + j * iwidth + i;
+  double alph = 1. - pt->x () * pt->x () - pt->y () * pt->y ();
+  if (alph < 0.) alph = 0.;  // saturation
+  for (int sl = slp; sl > 1; sl --) alph *= alph;
+  return (alph);
 }
 
 
 void TerrainMap::toggleShadingType ()
 {
-  if (++shading > SHADE_SLOPE) shading = SHADE_HILL;
+  if (++shading > SHADE_EXP_SLOPE) shading = SHADE_HILL;
 }
 
 
@@ -172,6 +202,77 @@ void TerrainMap::setLightAngle (float val)
   ang += ASF_2PI_3;
   light_v3.set (- (float) (cos (ang) / 2),
                 - (float) (sin (ang) / 2), ASF_SQRT3_2);
+}
+
+
+void TerrainMap::incSlopinessFactor (int inc)
+{
+  slopiness += inc;
+  if (slopiness < 1) slopiness = 1;
+}
+
+void TerrainMap::setSlopinessFactor (int val)
+{
+  slopiness = val;
+  if (slopiness < 1) slopiness = 1;
+}
+
+
+Pt2i TerrainMap::closestFlatArea (const Pt2i &pt, int srad, int frad, int sfact)
+{
+  int sxmin = pt.x () - srad, sxmax = pt.x () + srad + 1;
+  int symin = pt.y () - srad, symax = pt.y () + srad + 1;
+  if (sxmin < 0) sxmin = 0;
+  if (symin < 0) symin = 0;
+  if (sxmax > iwidth) sxmax = iwidth;
+  if (symax > iheight) symax = iheight;
+
+  int fxmin = sxmin - frad, fxmax = sxmax + frad;
+  int fymin = symin - frad, fymax = symax + frad;
+  if (fxmin < 0) fxmin = 0;
+  if (fymin < 0) fymin = 0;
+  if (fxmax > iwidth) fxmax = iwidth;
+  if (fymax > iheight) fymax = iheight;
+
+  int sw = sxmax - sxmin, sh = symax - symin, swh = sw * sh;
+  double val[swh];
+  int cpt[swh];
+  for (int i = 0; i < swh; i++)
+  {
+    val[i] = 0.;
+    cpt[i] = 0;
+  }
+
+  for (int fi = fxmin; fi < fxmax; fi ++)
+  {
+    int lxmin = fi - frad - sxmin;
+    int lxmax = fi + frad + 1 - sxmin;
+    if (lxmin < 0) lxmin = 0;
+    if (lxmax > sw) lxmax = sw;
+    for (int fj = fymin; fj < fymax; fj ++)
+    {
+      double dval = getSlopeFactor (fi, iheight - 1 - fj, sfact);
+      int lymin = fj - frad - symin;
+      int lymax = fj + frad + 1 - symin;
+      if (lymin < 0) lymin = 0;
+      if (lymax > sh) lymax = sh;
+      for (int lj = lymin; lj < lymax; lj ++)
+        for (int li = lxmin; li < lxmax; li ++)
+        {
+          val[lj * sw + li] += dval;
+          cpt[lj * sw + li] ++;
+        }
+    }
+  }
+
+  int cmax = 0;
+  val[0] /= cpt[0];
+  for (int i = 1; i < swh; i ++)
+  {
+    val[i] /= cpt[i];
+    if (val[i] > val[cmax]) cmax = i;
+  }
+  return (Pt2i (sxmin + cmax % sw, symin + cmax / sw));
 }
 
 

@@ -43,6 +43,8 @@ public:
   static const int SHADE_HILL;
   /** Slope shading type. */
   static const int SHADE_SLOPE;
+  /** Exponential slope shading type. */
+  static const int SHADE_EXP_SLOPE;
   /** Default value for the pad size (tile rows or columns). */
   static const int DEFAULT_PAD_SIZE;
   /** DTM map file suffix. */
@@ -115,6 +117,14 @@ public:
   int get (int i, int j, int shading_type) const;
 
   /**
+   * \brief Returns an exponential slope value for a pixel of the normal map.
+   * @param i Pixel absiscae.
+   * @param j Pixel ordinate.
+   * @param slp Slope angle exponential factor.
+   */
+  double getSlopeFactor (int i, int j, int slp) const;
+
+  /**
    * \brief Returns the lighting device angle.
    */
   inline int shadingType () const { return shading; }
@@ -140,6 +150,31 @@ public:
    * @param val Rotation angle in radians.
    */
   void setLightAngle (float val);
+
+  /**
+   * \brief Returns the slope exponential factor applied.
+   */
+  inline int slopinessFactor () const { return slopiness; }
+
+  /**
+   * \brief Increments the slope angle exponential factor from given value.
+   * @param inc Factor increment.
+   */
+  void incSlopinessFactor (int val);
+
+  /**
+   * \brief Sets the slope angle exponential factor.
+   * @param val New factor value.
+   */
+  void setSlopinessFactor (int val);
+
+  /** Return the center of the closest flat area to given point.
+   * @param pt The input point.
+   * @param srad The search area radius.
+   * @param frad The slope integration area radius.
+   * @param sfact The slope angle exponential factor.
+   */
+  Pt2i closestFlatArea (const Pt2i &pt, int srad, int frad, int sfact);
 
   /**
    * \brief Declares a new normal map file to add.
@@ -324,6 +359,8 @@ private:
   Pt3f light_v2;
   /** Third light direction. */
   Pt3f light_v3;
+  /** Slope exponential factor (min value : 1). */
+  int slopiness;
 
   /** Input files layout. */
   std::vector<Pt2i> layout;
