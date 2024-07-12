@@ -235,8 +235,8 @@ Pt2i TerrainMap::closestFlatArea (const Pt2i &pt, int srad, int frad, int sfact)
   if (fymax > iheight) fymax = iheight;
 
   int sw = sxmax - sxmin, sh = symax - symin, swh = sw * sh;
-  double val[swh];
-  int cpt[swh];
+  double *val = new double[swh];
+  int *cpt = new int[swh];
   for (int i = 0; i < swh; i++)
   {
     val[i] = 0.;
