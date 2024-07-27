@@ -111,6 +111,16 @@ public:
   void getPoints (std::vector<Pt2i> &pts) const;
 
   /**
+   * \brief Returns the min abscissae.
+   */
+  inline int getMin () const { return min; }
+
+  /**
+   * \brief Returns the max abscissae.
+   */
+  inline int getMax () const { return max; }
+
+  /**
    * \brief Provides the naive central segment end points coordinates.
    * @param x1 Start point X-coordinate to set.
    * @param x2 Start point Y-coordinate to set.

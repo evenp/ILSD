@@ -125,6 +125,43 @@ void IPtTile::setArea (int64_t xmin, int64_t ymin, int64_t zmax, int cellsize)
 }
 
 
+Pt2i IPtTile::findLayout (std::string name, double dtmx, double dtmy,
+                                            double dtmw, double dtmh)
+{
+  int layx = -1, layy = -1;
+  bool labelled = (name.find (XYZL_SUFFIX) != std::string::npos);
+  double x, y, z;
+  char lab;
+
+  std::ifstream fpts (name.c_str (), std::ios::in);
+  if (fpts.is_open ())
+  {
+    fpts >> x;
+    for (int i = 0; (layx < 0 || layy < 0) && ! fpts.eof (); i++)
+    {
+      fpts >> y;
+      fpts >> z;
+      if (labelled) fpts >> lab;
+      if (layx < 0)
+      {
+        double xc = dtmx + dtmw * (int) ((x - dtmx) / dtmw);
+        if (x - xc > dtmw * 0.1 && x - xc < dtmw * 0.9)
+          layx = (int) ((x - dtmx) / dtmw);
+      }
+      if (layy < 0)
+      {
+        double yc = dtmy + dtmh * (int) ((y - dtmy) / dtmh);
+        if (y - yc > dtmh * 0.1 && y - yc < dtmh * 0.9)
+          layy = (int) ((y - dtmy) / dtmh);
+      }
+      fpts >> x;
+    }
+    fpts.close ();
+  }
+  return (Pt2i (layx, layy));
+}
+
+
 void IPtTile::setData (std::vector<Pt3i> pts, std::vector<int> inds)
 {
   nb = (int) (pts.size ());

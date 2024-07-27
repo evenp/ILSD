@@ -237,6 +237,16 @@ public:
   int nextPad (unsigned char *map);
 
   /**
+   * \brief Returns tile features from its layout.
+   * Returns whether the tile is found.
+   * @param name Returned nick name feature.
+   * @param xmin Returned left-most coordinate feature.
+   * @param ymin Returned lower coordinate feature.
+   * @param lay Checked tile layout.
+   */
+  bool getLayoutInfo (std::string &name, double &xmin, double &ymin, Pt2i lay);
+
+  /**
    * \brief Loads one slope-shaded DTM in given map location.
    * Returns whether loading succeeded.
    * @param k Tile index wrt tile set.
@@ -254,10 +264,16 @@ public:
   void clearMap (unsigned char *submap, int pw, int w, int h);
 
   /**
-   * \brief Creates a normal vector map from the first tile.
+   * \brief Creates a normal vector map file from the first loaded tile.
    * @param name Output file name.
    */
   void saveFirstNormalMap (const std::string &name) const;
+
+  /**
+   * \brief Creates normal vector map files from each loaded tile.
+   * @param dir Output directory name.
+   */
+  void saveLoadedNormalMaps (const std::string &dir) const;
 
   /**
    * \brief Adds and arranges a new DTM file.
@@ -272,6 +288,12 @@ public:
    */
   bool addDtmFile (const std::string &name,
                    bool verb = false, bool grid_ref = false);
+
+  /**
+   * \brief Adds a DTM nick name.
+   * @param name DTM file nick name (no directory prefix, nor suffix).
+   */
+  void addDtmName (const std::string &name);
 
   /**
    * \brief Creates the normal map from available DTM (ASC) files.
@@ -363,14 +385,15 @@ private:
   int slopiness;
 
   /** Input files layout. */
-  std::vector<Pt2i> layout;
-  /** First tile leftmost coordinate. */
-  double fx_min;
-  /** First tile lowest coordinate. */
-  double fy_min;
-
-  /** Input files names. */
-  std::vector<std::string> input_files;
+  std::vector<Pt2i> input_layout;
+  /** Input files full names. */
+  std::vector<std::string> input_fullnames;
+  /** Input files nick names (without prefix nor suffix). */
+  std::vector<std::string> input_nicknames;
+  /** Loaded tiles lefmost coordinate. */
+  std::vector<double> input_xmins;
+  /** Loaded tiles lowest coordinate. */
+  std::vector<double> input_ymins;
   /** Map of arranged tile file names. */
   std::string **arr_files;
 

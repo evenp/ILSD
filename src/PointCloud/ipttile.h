@@ -28,6 +28,7 @@
 #include <vector>
 #include <string>
 #include <inttypes.h>
+#include "pt2i.h"
 #include "pt3i.h"
 
 
@@ -109,11 +110,23 @@ public:
   /**
    * Declares the playground area.
    * @params xmin X-coordinate of lower left corner.
-   * @params xmin Y-coordinate of lower left corner.
+   * @params ymin Y-coordinate of lower left corner.
    * @params zmax Maximal height.
    * @params cellsize Cell size (in millimeters).
    */
   void setArea (int64_t xmin, int64_t ymin, int64_t zmax, int cellsize);
+
+  /**
+   * Determines the layout of the point tile.
+   * Returns (-1, -1) if the layout is not found.
+   * @params name Name of the point tile file.
+   * @params dtmx Left bound of DTM tile set.
+   * @params dtmy Lower bound of DTM tile set.
+   * @params dtmw Width of a DTM tile (in meters).
+   * @params dtmh Height of a DTM tile (in meters).
+   */
+  Pt2i findLayout (std::string name, double dtmx, double dtmy,
+                                     double dtmw, double dtmh);
 
   /**
    * Declares the point and index data.

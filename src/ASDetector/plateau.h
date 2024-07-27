@@ -510,5 +510,12 @@ private :
    */
   static bool compHigher (Pt2f p1, Pt2f p2);
 
+  /**
+   * \brief Compares points by increasing distance.
+   * @param p1 First point.
+   * @param p2 Second point.
+   */
+  static bool recompIFurther (Pt2i p1, Pt2i p2);
+
 };
 #endif

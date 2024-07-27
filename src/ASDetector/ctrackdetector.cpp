@@ -1050,16 +1050,16 @@ int CTrackDetector::boundsStability (float slast, float elast,
 
 bool CTrackDetector::compIFurther (Pt2f p1, Pt2f p2)
 {
-  return ((int) (p2.x () * 1000 + 0.5f) > (int) (p1.x () * 1000 + 0.5f)
-     || ((int) (p2.x () * 1000 + 0.5f) == (int) (p1.x () * 1000 + 0.5f)
-         && (int) (p2.y () * 1000 + 0.5f) > (int) (p1.y () * 1000 + 0.5f)));
+  return (floor (p2.x () * 1000) > floor (p1.x () * 1000)
+          || (floor (p2.x () * 1000) == floor (p1.x () * 1000)
+              && floor (p2.y () * 1000) > floor (p1.y () * 1000)));
 }
 
 bool CTrackDetector::compLFurther (Pt3f p1, Pt3f p2)
 {
-  return ((int) (p2.x () * 1000 + 0.5f) > (int) (p1.x () * 1000 + 0.5f)
-     || ((int) (p2.x () * 1000 + 0.5f) == (int) (p1.x () * 1000 + 0.5f)
-         && (int) (p2.y () * 1000 + 0.5f) > (int) (p1.y () * 1000 + 0.5f)));
+  return (floor (p2.x () * 1000) > floor (p1.x () * 1000)
+          || (floor (p2.x () * 1000) == floor (p1.x () * 1000)
+              && floor (p2.y () * 1000) > floor (p1.y () * 1000)));
 }
 
 
